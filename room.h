@@ -6,23 +6,26 @@
 
 class Room {
     private:
-    int x;
-    int y;
+    //int x;
+    //int y;
     int type;
     bool available = false;
+    bool visible = false;
 
     public:
-    Room(int, int, int);
+    //Room(int, int, int);
     Room();
     
     int getType();
     void setType(int);
     void setAvailable(bool);
     bool getAvailable();
+    void setVisible(bool);
+    bool getVisible();
 };
 
 Room::Room() : type(CLOSED){}
-Room::Room(int x, int y, int type) : x(x), y(y), type(type) {}
+//Room::Room(int x, int y, int type) : x(x), y(y), type(type) {}
 
 int Room::getType()
 {
@@ -42,4 +45,14 @@ void Room::setAvailable(bool newAvailable)
 bool Room::getAvailable()
 {
     return available;
+}
+
+void Room::setVisible(bool newVisible)
+{
+    visible = newVisible;
+}
+
+bool Room::getVisible()
+{
+    return visible;
 }

@@ -8,12 +8,22 @@ int main()
     zmq::socket_t socket{context, zmq::socket_type::req};
     socket.connect("tcp://localhost:5555");
 
-    std::cout << "Generating" << std::endl;
-    std::string message = "start";
-    socket.send(zmq::buffer(message), zmq::send_flags::none);
-
+    std::string message;
     zmq::message_t response;
-    socket.recv(response, zmq::recv_flags::none);
+
+    while(true)
+    {
+        int input;
+
+        std::cin >> input;
+
+        if(input == 0) break;
+        std::cout << "Generating" << std::endl;
+        message = "start";
+        socket.send(zmq::buffer(message), zmq::send_flags::none);
+        socket.recv(response, zmq::recv_flags::none);
+    }
+    
 
     message = "close";
     socket.send(zmq::buffer(message), zmq::send_flags::none);

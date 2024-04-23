@@ -24,7 +24,7 @@ int main()
         else
         {
             Map map(10,10,30);
-            map.print();
+            map.fullPrint(true);
             socket.send(zmq::buffer("done"), zmq::send_flags::none);
         }
 
