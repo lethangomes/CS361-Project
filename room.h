@@ -1,5 +1,6 @@
 #pragma once
 
+#define NUMROOMTYPES 5
 #define CLOSED -1
 #define EMPTY 0
 #define SPAWN 1

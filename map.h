@@ -8,6 +8,7 @@ class Map {
         int width;
         int height;
         int numRooms;
+        int numEmptyRooms;
         
         void checkAvailableSpots(int *, int*, int&, int, int);
 
@@ -16,6 +17,7 @@ class Map {
 
         void print();
         void fullPrint(bool);
+        void addRooms(int, int);
 };
 
 Map::Map(int width, int height, int numRooms) : width(width), height(height), numRooms(numRooms)
@@ -27,6 +29,7 @@ Map::Map(int width, int height, int numRooms) : width(width), height(height), nu
     {
         numRooms = width * height;
     }
+    numEmptyRooms = numRooms-1;
 
     //create rooms
     rooms = new Room * [width];
@@ -36,8 +39,6 @@ Map::Map(int width, int height, int numRooms) : width(width), height(height), nu
     }
 
     //sets spawn in the middle of the map
-    std::cout << "test" << width << height<<std::endl;
-
     rooms[width/2][height/2].setType(SPAWN);
 
     //creates lists to track where new rooms can be added
@@ -111,6 +112,7 @@ void Map::print()
     }
 }
 
+//prints map with connections and hides closed rooms
 void Map::fullPrint(bool printInvisible)
 {
     for(int i = 0; i < width; i++)
@@ -149,5 +151,23 @@ void Map::fullPrint(bool printInvisible)
             //std::cout << rooms[i][j].getType() << "\t";
         }
         std::cout << std::endl;
+    }
+}
+
+//adds a given number of rooms of a specified type
+void Map::addRooms(int type, int num)
+{
+    for(int i = 0; i < num; i++)
+    {
+        if(numEmptyRooms == 0) break;
+        //randomly chooses rooms until it finds an empty one
+        Room * current; 
+        do 
+        {
+            current = &rooms[rand() % width][rand() % height];
+        } while (current->getType() != EMPTY);
+
+        current->setType(type);
+        numEmptyRooms -= 1;
     }
 }
