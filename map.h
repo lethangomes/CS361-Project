@@ -1,5 +1,6 @@
 #pragma once
 #include "room.h"
+#include "messageParser.h"
 #include <iostream>
 
 class Map {
@@ -18,6 +19,7 @@ class Map {
         void print();
         void fullPrint(bool);
         void addRooms(int, int);
+        Room& getRoom(int, int);
 };
 
 Map::Map(int width, int height, int numRooms) : width(width), height(height), numRooms(numRooms)
@@ -38,6 +40,14 @@ Map::Map(int width, int height, int numRooms) : width(width), height(height), nu
         rooms[i] = new Room[height];
     }
 
+    for(int i = 0; i < width; i++)
+    {
+        for(int j = 0; j < height; j++)
+        {
+            rooms[i][j].setCoords(i,j);
+        }
+    }
+
     //sets spawn in the middle of the map
     rooms[width/2][height/2].setType(SPAWN);
 
@@ -51,7 +61,6 @@ Map::Map(int width, int height, int numRooms) : width(width), height(height), nu
     //adds specified number of rooms
     for(int i = 0; i < numRooms - 1; i++)
     {
-        
         //pick random room that is connected to a valid room and set it to be empty
         int index = rand()%numOpenSpots;
         int x = openSpotsX[index];
@@ -170,4 +179,9 @@ void Map::addRooms(int type, int num)
         current->setType(type);
         numEmptyRooms -= 1;
     }
+}
+
+Room& Map::getRoom(int x, int y)
+{
+    return rooms[x][y];
 }

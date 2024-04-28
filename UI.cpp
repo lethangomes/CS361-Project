@@ -1,44 +1,4 @@
-#include <iostream>
-#include <string>
-#include <zmq.hpp>
-#include "room.h"
-
-
-
-zmq::message_t generateMap(zmq::socket_t & socket)
-{
-    //settings format(for now): width,height,numRooms,[listofnumberofrooms]
-    std::string settings;
-    
-    //get settings from user(MOVE TO MICROSERVICE LATER)
-    std::cout << "Enter the Width of the dungeon: ";
-    std::string width;
-    std::cin >> width;
-    std::cout << "Enter the Height of the dungeon: ";
-    std::string height;
-    std::cin >> height;
-    std::cout << "Enter the Number of rooms in the dungeon: ";
-    std::string numRooms;
-    std::cin >> numRooms;
-
-    std::string roomTypeCounts = "";
-    for(int i = SPAWN + 1; i < NUMROOMTYPES; i++)
-    {
-        std::string temp;
-        std::cout << "How many rooms of type " << i << " would you like?";
-        std::cin >> temp;
-        roomTypeCounts = roomTypeCounts + temp;
-        if(i != NUMROOMTYPES - 1 ) roomTypeCounts = roomTypeCounts + ";";
-    }
-
-    std::cout << "Generating" << std::endl;
-    std::string message = width + "," + height + "," + numRooms + "," + roomTypeCounts;
-
-    zmq::message_t response;
-    socket.send(zmq::buffer(message), zmq::send_flags::none);
-    socket.recv(response, zmq::recv_flags::none);
-    return response;
-}
+#include "UI.h"
 
 int main() 
 {
@@ -52,7 +12,27 @@ int main()
 
     while(true)
     {
-        generateMap(socket);
+        Message map(generateMap(socket).to_string());
+        
+        //get map parameters from message
+        int width = map.getInt("width");
+        int height = map.getInt("height");
+        int numRooms = map.getInt("numRooms");
+
+        //create rooms
+        Room** rooms = new Room * [width];
+        for(int i = 0; i < width; i++)
+        {
+            rooms[i] = new Room[height];
+        }
+
+        for(int i = 0; i < numRooms; i++)
+        {
+            Room newRoom(map[std::to_string(i)]);
+            rooms[newRoom.getX()][newRoom.getY()] = newRoom;
+        }
+
+        fullPrint(true, width, height, rooms);
     }
     
 
@@ -60,4 +40,84 @@ int main()
     socket.send(zmq::buffer(message), zmq::send_flags::none);
     socket.recv(response, zmq::recv_flags::none);
     socket.close();
+}
+
+zmq::message_t generateMap(zmq::socket_t & socket)
+{
+    //settings format(for now): width,height,numRooms,[listofnumberofrooms]
+    std::string settings;
+    Message generationSettings;
+
+    //get settings from user(MOVE TO MICROSERVICE LATER)
+    std::cout << "Enter the Width of the dungeon: ";
+    std::string width;
+    std::cin >> width;
+    generationSettings.addData("width", width);
+
+    std::cout << "Enter the Height of the dungeon: ";
+    std::string height;
+    std::cin >> height;
+    generationSettings.addData("height", height);
+
+    std::cout << "Enter the Number of rooms in the dungeon: ";
+    std::string numRooms;
+    std::cin >> numRooms;
+    generationSettings.addData("numRooms", numRooms);
+
+
+    for(int i = SPAWN + 1; i < NUMROOMTYPES; i++)
+    {
+        std::string temp;
+        std::cout << "How many rooms of type " << i << " would you like?";
+        std::cin >> temp;
+        generationSettings.addData("numRoomType" + std::to_string(i), temp);
+    }
+
+    std::cout << "Generating" << std::endl;
+
+    zmq::message_t response;
+    socket.send(zmq::buffer(generationSettings.toString()), zmq::send_flags::none);
+    socket.recv(response, zmq::recv_flags::none);
+    return response;
+}
+
+void fullPrint(bool printInvisible, int width, int height, Room ** rooms)
+{
+    for(int i = 0; i < width; i++)
+    {
+        for(int j = 0; j < height; j++)
+        {
+            int type = rooms[i][j].getType();
+            if(type == CLOSED)
+            {
+                std::cout << "    ";
+            }
+            else
+            {
+                std::cout << " " << type << " ";
+
+                if(j != height - 1 && rooms[i][j+1].getType() != CLOSED) std::cout << "-";
+                else std::cout << " ";
+            }
+            
+        }
+        std::cout << std::endl;
+
+        for(int j = 0; j < height; j++)
+        {
+            int type = rooms[i][j].getType();
+            std::cout << " ";
+            if(i == width - 1 || type == CLOSED)
+            {
+                std::cout << "   ";
+            }
+            else
+            {
+                if(rooms[i+1][j].getType() != CLOSED) std::cout << "|  ";
+                else std::cout << "   ";
+            }
+            //std::cout << rooms[i][j].getType() << "\t";
+        }
+        std::cout << std::endl;
+    }
 }

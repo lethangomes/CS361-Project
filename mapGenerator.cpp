@@ -13,18 +13,40 @@ int processRequest(std::string request, zmq::socket_t& socket)
     }
     else
     {
+        Message generationSettings(request);
         //split request into separate values
-        std::vector<std::string> values = splitMessage(request, ',');
-        Map map(std::stoi(values[0]),std::stoi(values[1]),std::stoi(values[2]));
+        int width = generationSettings.getInt("width");
+        int height = generationSettings.getInt("height");
+        int numRooms = generationSettings.getInt("numRooms");
+
+        Map map(width, height, numRooms);
 
         //add rooms of specified type
-        std::vector<std::string> numTypeRooms = splitMessage(values[3], ';');
-        for(int i = 0; i < numTypeRooms.size(); i++)
+        for(int i = SPAWN + 1; i < NUMROOMTYPES; i++)
         {
-            map.addRooms(i + SPAWN + 1, std::stoi(numTypeRooms[i]));
+            std::string roomCount = generationSettings["numRoomType" + std::to_string(i)];
+            if(roomCount.compare("")) map.addRooms(i, std::stoi(roomCount));
         }
         map.fullPrint(true);
-        socket.send(zmq::buffer("done"), zmq::send_flags::none);
+
+        Message generatedMap;
+        generatedMap.addData("width", generationSettings["width"]);
+        generatedMap.addData("height", generationSettings["height"]);
+        generatedMap.addData("numRooms", generationSettings["numRooms"]);
+
+        int count = 0;
+        for(int i = 0; i < width; i++)
+        {
+            for(int j = 0; j < height; j++)
+            {
+                if(map.getRoom(i, j).getType() != CLOSED)
+                {
+                    generatedMap.addData(std::to_string(count++) , map.getRoom(i, j).toString());
+                }
+            }
+        }
+
+        socket.send(zmq::buffer(generatedMap.toString()), zmq::send_flags::none);
         return 0;
     }
 }
