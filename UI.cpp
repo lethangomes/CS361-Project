@@ -18,7 +18,7 @@ int main()
         int width = map.getInt("width");
         int height = map.getInt("height");
         int numRooms = map.getInt("numRooms");
-
+        
         //create rooms
         Room** rooms = new Room * [width];
         for(int i = 0; i < width; i++)
@@ -31,8 +31,12 @@ int main()
             Room newRoom(map[std::to_string(i)]);
             rooms[newRoom.getX()][newRoom.getY()] = newRoom;
         }
+        rooms[width/2 + 1][height/2].setVisible(true);
+        rooms[width/2 - 1][height/2].setVisible(true);
+        rooms[width/2][height/2 + 1].setVisible(true);
+        rooms[width/2][height/2 - 1].setVisible(true);
 
-        fullPrint(true, width, height, rooms);
+        fullPrint(false, width, height, rooms);
     }
     
 
@@ -88,15 +92,22 @@ void fullPrint(bool printInvisible, int width, int height, Room ** rooms)
         for(int j = 0; j < height; j++)
         {
             int type = rooms[i][j].getType();
-            if(type == CLOSED)
+            if(type == CLOSED || (!printInvisible && !rooms[i][j].getVisible()))
             {
                 std::cout << "    ";
             }
             else
             {
-                std::cout << " " << type << " ";
+                if(!printInvisible && !rooms[i][j].getRevealed())
+                {
+                    std::cout << " ? ";
+                }
+                else
+                {
+                    std::cout << " " << rooms[i][j].getTypeChar() << " ";
+                }
 
-                if(j != height - 1 && rooms[i][j+1].getType() != CLOSED) std::cout << "-";
+                if(j != height - 1 && rooms[i][j+1].getType() != CLOSED && rooms[i][j+1].getVisible()) std::cout << "-";
                 else std::cout << " ";
             }
             
@@ -113,7 +124,7 @@ void fullPrint(bool printInvisible, int width, int height, Room ** rooms)
             }
             else
             {
-                if(rooms[i+1][j].getType() != CLOSED) std::cout << "|  ";
+                if(rooms[i+1][j].getType() != CLOSED && rooms[i+1][j].getVisible() && rooms[i][j].getVisible()) std::cout << "|  ";
                 else std::cout << "   ";
             }
             //std::cout << rooms[i][j].getType() << "\t";

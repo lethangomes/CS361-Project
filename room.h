@@ -4,14 +4,19 @@
 #define CLOSED -1
 #define EMPTY 0
 #define SPAWN 1
+#define GOLD 2
+#define MONSTER 3
+#define TRAP 4
 
 class Room {
     private:
     int x;
     int y;
     int type;
-    bool available = false;
+    char typeChars[NUMROOMTYPES] = {'O', 'S', 'G', 'M', 'T'};
+    bool available = false; 
     bool visible = false;
+    bool revealed = false;
 
     public:
     Room(int, int, int);
@@ -19,11 +24,14 @@ class Room {
     Room(std::string);
     
     int getType();
+    char getTypeChar();
     void setType(int);
     void setAvailable(bool);
     bool getAvailable();
     void setVisible(bool);
     bool getVisible();
+    void setRevealed(bool);
+    bool getRevealed();
     int getX();
     int getY();
     void setCoords(int, int);
@@ -53,11 +61,18 @@ Room::Room(std::string roomString)
     type = std::stoi(values[2]);
     available = std::stoi(values[3]);
     visible = std::stoi(values[4]);
+    revealed = std::stoi(values[5]);
 }
 
 int Room::getType()
 {
     return type;
+}
+
+char Room::getTypeChar()
+{
+    if(type == CLOSED) return ' ';
+    return typeChars[type];
 }
 
 void Room::setType(int newType)
@@ -85,6 +100,16 @@ bool Room::getVisible()
     return visible;
 }
 
+void Room::setRevealed(bool newRevealed)
+{
+    revealed = newRevealed;
+}
+
+bool Room::getRevealed()
+{
+    return revealed;
+}
+
 int Room::getX()
 {
     return x;
@@ -97,7 +122,7 @@ int Room::getY()
 
 std::string Room::toString()
 {
-    return std::to_string(x) + ";" + std::to_string(y) + ";" + std::to_string(type) + ";" + std::to_string(available) + ";" + std::to_string(visible);
+    return std::to_string(x) + ";" + std::to_string(y) + ";" + std::to_string(type) + ";" + std::to_string(available) + ";" + std::to_string(visible) + ";" + std::to_string(revealed);
 }
 
 void Room::setCoords(int newx, int newy)

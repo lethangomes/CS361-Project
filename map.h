@@ -50,6 +50,8 @@ Map::Map(int width, int height, int numRooms) : width(width), height(height), nu
 
     //sets spawn in the middle of the map
     rooms[width/2][height/2].setType(SPAWN);
+    rooms[width/2][height/2].setVisible(true);
+    rooms[width/2][height/2].setRevealed(true);
 
     //creates lists to track where new rooms can be added
     int numOpenSpots = 0;
