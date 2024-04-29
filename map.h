@@ -15,10 +15,12 @@ class Map {
 
     public:
         Map(int, int, int);
+        ~Map();
 
         void print();
         void fullPrint(bool);
         void addRooms(int, int);
+        int getNumRooms();
         Room& getRoom(int, int);
 };
 
@@ -77,6 +79,15 @@ Map::Map(int width, int height, int numRooms) : width(width), height(height), nu
 
     free(openSpotsX);
     free(openSpotsY);
+}
+
+Map::~Map()
+{
+    for(int i = 0; i < width; i++)
+    {
+        free(rooms[i]);
+    }
+    free(rooms);
 }
 
 void Map::checkAvailableSpots(int * openSpotsX, int* openSpotsY, int& numOpenSpots, int x, int y)
@@ -186,4 +197,9 @@ void Map::addRooms(int type, int num)
 Room& Map::getRoom(int x, int y)
 {
     return rooms[x][y];
+}
+
+int Map::getNumRooms()
+{
+    return numRooms;
 }

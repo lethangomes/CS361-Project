@@ -2,6 +2,7 @@
 #include <zmq.hpp>
 #include "map.h"
 #include "messageParser.h"
+#include "ports.h"
 
 int processRequest(std::string request, zmq::socket_t& socket)
 {
@@ -55,7 +56,7 @@ int main()
 {
     zmq::context_t context(1);
     zmq::socket_t socket(context, zmq::socket_type::rep);
-    socket.bind("tcp://*:5555");
+    socket.bind("tcp://*:" +  std::string(MAP_GENERATOR_PORT));
 
     while(true)
     {
