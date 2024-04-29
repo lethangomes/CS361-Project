@@ -23,30 +23,34 @@ int main()
     int height = map.getInt("height");
     int numRooms = map.getInt("numRooms");
     
-    //create rooms
-    Room** rooms = new Room * [width];
-    for(int i = 0; i < width; i++)
-    {
-        rooms[i] = new Room[height];
-    }
-
+    Game game(width, height, numRooms);
     //use response from mapGenerator to fill rooms
     for(int i = 0; i < numRooms; i++)
     {
         Room newRoom(map[std::to_string(i)]);
-        rooms[newRoom.getX()][newRoom.getY()] = newRoom;
+        game.setRoom(newRoom, newRoom.getX(), newRoom.getY());
     }
     
     //sets rooms around spawn to be visible. REMOVE LATER
-    rooms[width/2 + 1][height/2].setVisible(true);
-    rooms[width/2 - 1][height/2].setVisible(true);
-    rooms[width/2][height/2 + 1].setVisible(true);
-    rooms[width/2][height/2 - 1].setVisible(true);
+    game.updateVisibleRooms();
 
-    fullPrint(true, width, height, rooms);
-    UI_socket.send(zmq::buffer(mapPrintString(false, width, height, rooms)));
+    //debug print
+    game.fullPrint(true);
+
+    //send UI map to print
+    UI_socket.send(zmq::buffer(game.mapPrintString(false)));
     
+    //main loop
+    while(true)
+    {
+        UI_socket.recv(response, zmq::recv_flags::none);
+        Message command(response.to_string());
+        std::cout << command["command"] << std::endl;
+        game.moveUp();
+        UI_socket.send(zmq::buffer(game.mapPrintString(false)));
+    }
 
+    //close sockets
     message = "close";
     generator_socket.send(zmq::buffer(message), zmq::send_flags::none);
     generator_socket.recv(response, zmq::recv_flags::none);
@@ -67,101 +71,5 @@ zmq::message_t generateMap(zmq::socket_t & socket, std::string settings)
     return response;
 }
 
-void fullPrint(bool printInvisible, int width, int height, Room ** rooms)
-{
-    for(int i = 0; i < width; i++)
-    {
-        for(int j = 0; j < height; j++)
-        {
-            int type = rooms[i][j].getType();
-            if(type == CLOSED || (!printInvisible && !rooms[i][j].getVisible()))
-            {
-                std::cout << "    ";
-            }
-            else
-            {
-                if(!printInvisible && !rooms[i][j].getRevealed())
-                {
-                    std::cout << " ? ";
-                }
-                else
-                {
-                    std::cout << " " << rooms[i][j].getTypeChar() << " ";
-                }
 
-                if(j != height - 1 && rooms[i][j+1].getType() != CLOSED && rooms[i][j+1].getVisible()) std::cout << "-";
-                else std::cout << " ";
-            }
-            
-        }
-        std::cout << std::endl;
 
-        for(int j = 0; j < height; j++)
-        {
-            int type = rooms[i][j].getType();
-            std::cout << " ";
-            if(i == width - 1 || type == CLOSED)
-            {
-                std::cout << "   ";
-            }
-            else
-            {
-                if(rooms[i+1][j].getType() != CLOSED && (printInvisible || (rooms[i+1][j].getVisible() && rooms[i][j].getVisible()))) std::cout << "|  ";
-                else std::cout << "   ";
-            }
-            //std::cout << rooms[i][j].getType() << "\t";
-        }
-        std::cout << std::endl;
-    }
-}
-
-std::string mapPrintString(bool printInvisible, int width, int height, Room ** rooms)
-{
-    std::string mapString = "";
-    for(int i = 0; i < width; i++)
-    {
-        for(int j = 0; j < height; j++)
-        {
-            int type = rooms[i][j].getType();
-            if(type == CLOSED || (!printInvisible && !rooms[i][j].getVisible()))
-            {
-                mapString += "____";
-            }
-            else
-            {
-                if(!printInvisible && !rooms[i][j].getRevealed())
-                {
-                    mapString += "_?_";
-                }
-                else
-                {
-                    mapString = mapString +  "_" + rooms[i][j].getTypeChar() + "_";
-                }
-
-                if(j != height - 1 && rooms[i][j+1].getType() != CLOSED && (printInvisible || rooms[i][j+1].getVisible())) mapString += "-";
-                else mapString += "_";
-            }
-            
-        }
-        mapString += '\n';
-
-        for(int j = 0; j < height; j++)
-        {
-            int type = rooms[i][j].getType();
-            mapString += "_";
-            if(i == width - 1 || type == CLOSED)
-            {
-                mapString += "___";
-            }
-            else
-            {
-                if(rooms[i+1][j].getType() != CLOSED && (printInvisible || (rooms[i+1][j].getVisible() && rooms[i][j].getVisible()))) mapString += "|__";
-                else mapString += "___";
-            }
-            //std::cout << rooms[i][j].getType() << "\t";
-        }
-        mapString += '\n';
-    }
-
-    return mapString;
-}

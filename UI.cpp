@@ -11,7 +11,7 @@ int main()
 
     Message generationSettings;
 
-    //get settings from user(MOVE TO MICROSERVICE LATER)
+    //get settings from user
     std::cout << "Enter the Width of the dungeon: ";
     std::string width;
     std::cin >> width;
@@ -27,6 +27,7 @@ int main()
     std::cin >> numRooms;
     generationSettings.addData("numRooms", numRooms);
 
+    //get number of each room to add
     for(int i = SPAWN + 1; i < NUMROOMTYPES; i++)
     {
         std::string temp;
@@ -35,16 +36,37 @@ int main()
         generationSettings.addData("numRoomType" + std::to_string(i), temp);
     }
 
+    //send settings to game microservice
     socket.send(zmq::buffer(generationSettings.toString()), zmq::send_flags::none);
+    
+    //main game loop
+    while(true)
+    {
+        //print map
+        zmq::message_t response;
+        socket.recv(response, zmq::recv_flags::none);
+        printMap(response.to_string());
 
-    zmq::message_t response;
-    socket.recv(response, zmq::recv_flags::none);
+        //get possible commands from game and print them
+        std::cout << "Commands: " << std::endl;
 
-    std::string mapString = response.to_string();
-    std::replace(mapString.begin(), mapString.end(), '_', ' ');
-    std::cout << mapString << std::endl;
+        //options
+        std::cout << "What would you like to do? ";
+        std::string input;
+        std::cin >> input;
+        //validate input
+        Message command;
+        command.addData("command", input);
 
+        socket.send(zmq::buffer(command.toString()), zmq::send_flags::none);
+    }
 
     socket.close();
     return 0;
+}
+
+void printMap(std::string mapString)
+{
+    std::replace(mapString.begin(), mapString.end(), '_', ' ');
+    std::cout << mapString << std::endl;
 }
