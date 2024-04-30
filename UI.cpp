@@ -59,6 +59,12 @@ int main()
         command.addData("command", input);
 
         socket.send(zmq::buffer(command.toString()), zmq::send_flags::none);
+
+        if(!input.compare("close"))
+        {
+            socket.recv(response, zmq::recv_flags::none);
+            break;
+        }
     }
 
     socket.close();

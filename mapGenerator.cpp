@@ -28,25 +28,13 @@ int processRequest(std::string request, zmq::socket_t& socket)
             std::string roomCount = generationSettings["numRoomType" + std::to_string(i)];
             if(roomCount.compare("")) map.addRooms(i, std::stoi(roomCount));
         }
-        map.fullPrint(true);
+        //map.fullPrint(true);
 
+        //turn map into message
         Message generatedMap;
-        generatedMap.addData("width", generationSettings["width"]);
-        generatedMap.addData("height", generationSettings["height"]);
-        generatedMap.addData("numRooms", generationSettings["numRooms"]);
+        generatedMap.addMap(map.getRooms(), width, height, numRooms);
 
-        int count = 0;
-        for(int i = 0; i < width; i++)
-        {
-            for(int j = 0; j < height; j++)
-            {
-                if(map.getRoom(i, j).getType() != CLOSED)
-                {
-                    generatedMap.addData(std::to_string(count++) , map.getRoom(i, j).toString());
-                }
-            }
-        }
-
+        //send message
         socket.send(zmq::buffer(generatedMap.toString()), zmq::send_flags::none);
         return 0;
     }

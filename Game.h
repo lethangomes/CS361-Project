@@ -19,12 +19,33 @@ class Game{
 
     public:
         Game(int, int, int);
+        Game(Message);
+        ~Game();
         void setRoom(Room newRoom, int, int);
         void fullPrint(bool);
         std::string mapPrintString(bool);
         void updateVisibleRooms();
         void moveUp();
+        void moveDown();
+        void moveLeft();
+        void moveRight();
 };
+
+Game::~Game()
+{
+    for(int i = 0; i < width; i++)
+    {
+        free(rooms[i]);
+    }
+    free(rooms);
+}
+
+Game::Game(Message message)
+{
+    rooms = message.makeMap(width, height, numRooms);
+    playerX = width/2;
+    playerY = height/2;
+}
 
 Game::Game(int width, int height, int numRooms) : width(width), height(height), numRooms(numRooms)
 {
@@ -32,8 +53,6 @@ Game::Game(int width, int height, int numRooms) : width(width), height(height), 
     rooms = new Room * [width];
     for(int i = 0; i < width; i++)
     {
-
-    std::cout << "test" <<std::endl;
         rooms[i] = new Room[height];
     }
 
@@ -66,7 +85,6 @@ void Game::updateVisibleRooms()
 
 void Game::setRoom(Room newRoom, int x, int y)
 {
-
     rooms[x][y] = newRoom;
 }
 
@@ -89,7 +107,8 @@ void Game::fullPrint(bool printInvisible)
                 }
                 else
                 {
-                    std::cout << " " << rooms[i][j].getTypeChar() << " ";
+                    if(i == playerX && j == playerY) std::cout << " * ";
+                    else std::cout << " " << rooms[i][j].getTypeChar() << " ";
                 }
 
                 if(j != height - 1 && rooms[i][j+1].getType() != CLOSED && (printInvisible || rooms[i][j+1].getVisible())) std::cout << "-";
@@ -138,7 +157,8 @@ std::string Game::mapPrintString(bool printInvisible)
                 }
                 else
                 {
-                    mapString = mapString +  "_" + rooms[i][j].getTypeChar() + "_";
+                    if(i == playerX && j == playerY) mapString = mapString +  "_*_";
+                    else mapString = mapString +  "_" + rooms[i][j].getTypeChar() + "_";
                 }
 
                 if(j != height - 1 && rooms[i][j+1].getType() != CLOSED && (printInvisible || rooms[i][j+1].getVisible())) mapString += "-";
@@ -171,6 +191,37 @@ std::string Game::mapPrintString(bool printInvisible)
 
 void Game::moveUp()
 {
-    playerX -= 1;
-    updateVisibleRooms();
+    if(playerX != 0 && rooms[playerX - 1][playerY].getType() != CLOSED)
+    {
+        playerX -= 1;
+        updateVisibleRooms();
+    }    
+}
+
+void Game::moveDown()
+{
+    if(playerX != width -1 && rooms[playerX + 1][playerY].getType() != CLOSED)
+    {
+        playerX += 1;
+        updateVisibleRooms();
+    }
+}
+
+void Game::moveLeft()
+{
+    if(playerY != 0 && rooms[playerX][playerY - 1].getType() != CLOSED)
+    {
+        playerY -= 1;
+        updateVisibleRooms();
+    }
+    
+}
+
+void Game::moveRight()
+{
+    if(playerY != height-1 && rooms[playerX][playerY + 1].getType() != CLOSED)
+    {
+        playerY += 1;
+        updateVisibleRooms();
+    }
 }

@@ -22,6 +22,7 @@ class Map {
         void addRooms(int, int);
         int getNumRooms();
         Room& getRoom(int, int);
+        Room** getRooms();
 };
 
 Map::Map(int width, int height, int numRooms) : width(width), height(height), numRooms(numRooms)
@@ -202,4 +203,9 @@ Room& Map::getRoom(int x, int y)
 int Map::getNumRooms()
 {
     return numRooms;
+}
+
+Room** Map::getRooms()
+{
+    return rooms;
 }

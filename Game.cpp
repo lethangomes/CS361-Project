@@ -18,24 +18,13 @@ int main()
     UI_socket.recv(response, zmq::recv_flags::none);
     Message map(generateMap(generator_socket, response.to_string()).to_string());
     
-    //get map parameters from message
-    int width = map.getInt("width");
-    int height = map.getInt("height");
-    int numRooms = map.getInt("numRooms");
-    
-    Game game(width, height, numRooms);
-    //use response from mapGenerator to fill rooms
-    for(int i = 0; i < numRooms; i++)
-    {
-        Room newRoom(map[std::to_string(i)]);
-        game.setRoom(newRoom, newRoom.getX(), newRoom.getY());
-    }
-    
+    Game game(map);
+
     //sets rooms around spawn to be visible. REMOVE LATER
     game.updateVisibleRooms();
 
     //debug print
-    game.fullPrint(true);
+    //game.fullPrint(true);
 
     //send UI map to print
     UI_socket.send(zmq::buffer(game.mapPrintString(false)));
@@ -45,8 +34,36 @@ int main()
     {
         UI_socket.recv(response, zmq::recv_flags::none);
         Message command(response.to_string());
-        std::cout << command["command"] << std::endl;
-        game.moveUp();
+        std::string commandString= command["command"];
+
+        if(commandString.compare("w") == 0)
+        {
+            game.moveUp();
+        }
+        if(commandString.compare("a") == 0)
+        {
+            game.moveLeft();
+        }
+        if(commandString.compare("s") == 0)
+        {
+            game.moveDown();
+        }
+        if(commandString.compare("d") == 0)
+        {
+            game.moveRight();
+        }
+        if(commandString.compare("close") == 0)
+        {
+            UI_socket.send(zmq::buffer("close"));
+            break;
+        }
+
+        //figure out what commands are available
+        //microservice?? No. Maybe change it to one later
+
+        //add room description to message. Maybe add it as a function of Room
+
+        //send the UI game info
         UI_socket.send(zmq::buffer(game.mapPrintString(false)));
     }
 

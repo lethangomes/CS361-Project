@@ -9,3 +9,7 @@ Game : Game.cpp map.h room.h messageParser.h Game.h
 mapGenerator : mapGenerator.cpp room.h map.h messageParser.h
 	g++ -Wall -std=c++11 -lzmq -o mapGenerator mapGenerator.cpp
 
+run : Game mapGenerator UI
+	./mapGenerator&
+	./Game&
+	./UI

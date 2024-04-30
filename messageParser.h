@@ -2,6 +2,7 @@
 #include <iostream>
 #include <vector>
 #include <map>
+#include "room.h"
 
 
 
@@ -25,6 +26,8 @@ class Message {
     std::string toString();
     std::string operator [](std::string);
     int getInt(std::string);
+    void addMap(Room** rooms, int, int, int);
+    Room** makeMap(int&, int&, int&);
 };
 
 //default constructor
@@ -104,4 +107,46 @@ std::string Message::operator [](std::string key)
 int Message::getInt(std::string key)
 {
     return std::stoi(data[key]);
+}
+
+void Message::addMap(Room ** rooms, int width, int height, int numRooms)
+{
+    addData("width", std::to_string(width));
+    addData("height", std::to_string(height));
+    addData("numRooms", std::to_string(numRooms));
+
+    int count = 0;
+    for(int i = 0; i < width; i++)
+    {
+        for(int j = 0; j < height; j++)
+        {
+            if(rooms[i][j].getType() != CLOSED)
+            {
+                addData(std::to_string(count++) , rooms[i][j].toString());
+            }
+        }
+    }
+}
+
+Room ** Message::makeMap(int& width, int& height, int& numRooms)
+{
+    width = getInt("width");
+    height = getInt("height");
+    numRooms = getInt("numRooms");
+
+    //create rooms
+    Room ** rooms = new Room * [width];
+    for(int i = 0; i < width; i++)
+    {
+        rooms[i] = new Room[height];
+    }
+
+    //add rooms to map
+    for(int i = 0; i < numRooms; i++)
+    {
+        Room newRoom(data[std::to_string(i)]);
+        rooms[newRoom.getX()][newRoom.getY()] = newRoom;
+    }
+
+    return rooms;
 }
