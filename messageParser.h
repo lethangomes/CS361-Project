@@ -3,7 +3,9 @@
 #include <vector>
 #include <map>
 #include "room.h"
+#include <algorithm>
 
+#define DELIM_CHAR '%'
 
 
 class Message {
@@ -56,9 +58,10 @@ std::vector<std::string> Message::splitMessage(std::string message, char delim)
 
 Message::Message(std::string dataString)
 {
-    std::vector<std::string> values = splitMessage(dataString, ',');
+    std::vector<std::string> values = splitMessage(dataString, DELIM_CHAR);
     for(int i = 0; i < values.size(); i++)
     {
+        
         std::vector<std::string> value = splitMessage(values[i], ':');
         addData(value[0], value[1]);
     }
@@ -79,6 +82,7 @@ const std::map<std::string, std::string> & Message::getData()
 
 void Message::addData(std::string key, std::string val)
 {
+    std::replace(val.begin(), val.end(), '_', ' ');
     data[key] = val;
 }
 
@@ -88,7 +92,9 @@ std::string Message::toString()
     std::map<std::string, std::string>::iterator it = data.begin();
     while(it != data.end())
     {
-        message = message + it->first + ":" + it->second + ",";
+        std::string val = it->second;
+        std::replace(val.begin(), val.end(), ' ', '_');
+        message = message + it->first + ":" + it->second + DELIM_CHAR;
         it++;
     }
     message.pop_back();
@@ -122,7 +128,7 @@ void Message::addMap(Room ** rooms, int width, int height, int numRooms)
         {
             if(rooms[i][j].getType() != CLOSED)
             {
-                addData(std::to_string(count++) , rooms[i][j].toString());
+                addData("Room" + std::to_string(count++) , rooms[i][j].toString());
             }
         }
     }
@@ -144,7 +150,7 @@ Room ** Message::makeMap(int& width, int& height, int& numRooms)
     //add rooms to map
     for(int i = 0; i < numRooms; i++)
     {
-        Room newRoom(data[std::to_string(i)]);
+        Room newRoom(data["Room" + std::to_string(i)]);
         rooms[newRoom.getX()][newRoom.getY()] = newRoom;
     }
 

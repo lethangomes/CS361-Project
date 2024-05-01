@@ -1,6 +1,9 @@
 #include "UI.h"
 #include "ports.h"
 #include <algorithm>
+#include "commands.h"
+
+static std::string commandNames[NUM_COMMANDS] = {"quit", "moveNorth", "moveSouth", "moveEast", "moveWest"};
 
 int main()
 {
@@ -45,22 +48,63 @@ int main()
         //print map
         zmq::message_t response;
         socket.recv(response, zmq::recv_flags::none);
-        printMap(response.to_string());
+        std::string responseString = response.to_string();
+
+        Message message(responseString);
+        
+        //print map and room description
+        std::cout << message["map"] << std::endl;
+        std::cout << message["roomDesc"] << std::endl << std::endl;
 
         //get possible commands from game and print them
         std::cout << "Commands: " << std::endl;
+        bool commandAvailablity[NUM_COMMANDS];
+        for(int i = 0; i < NUM_COMMANDS; i++)
+        {
+            commandAvailablity[i] = message.getInt("command" + std::to_string(i));
+            if(commandAvailablity[i])
+            {
+                std::cout << commandNames[i] << std::endl;
+            }
+        }
+        std::cout << std::endl;
 
-        //options
-        std::cout << "What would you like to do? ";
-        std::string input;
-        std::cin >> input;
-        //validate input
+        //get command from user
         Message command;
-        command.addData("command", input);
+        bool isValid = false;
+        while(!isValid)
+        {
+            //get input
+            std::cout << "What would you like to do? ";
+            std::string input;
+            std::cin >> input;
 
+            //validate input
+            for(int i = 0; i < NUM_COMMANDS; i++)
+            {
+                if(!input.compare(commandNames[i]))
+                {
+                    if(commandAvailablity[i])
+                    {
+                        //valid input given
+                        command.addData("command", std::to_string(i));
+                        isValid = true;
+                        break;
+                    }
+                    std::cout << commandNames[i] << " is not available right now" <<  std::endl;
+                    continue;
+                }
+            }
+
+            if(!isValid)
+            {
+                std::cout << "Command not recognized. Please pick one from the list above" << std::endl;
+            }
+        }
+        
         socket.send(zmq::buffer(command.toString()), zmq::send_flags::none);
 
-        if(!input.compare("close"))
+        if(command.getInt("command") == QUIT)
         {
             socket.recv(response, zmq::recv_flags::none);
             break;

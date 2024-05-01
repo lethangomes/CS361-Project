@@ -20,51 +20,60 @@ int main()
     
     Game game(map);
 
-    //sets rooms around spawn to be visible. REMOVE LATER
+    //sets rooms around spawn to be visible.
     game.updateVisibleRooms();
 
     //debug print
-    //game.fullPrint(true);
+    game.fullPrint(true);
 
-    //send UI map to print
-    UI_socket.send(zmq::buffer(game.mapPrintString(false)));
+    //send data to print to UI
+    Message UIdata;
+    UIdata.addData("map", game.mapPrintString(false));
+    game.checkAvailableCommands(UIdata);
+    UI_socket.send(zmq::buffer(UIdata.toString()));
     
     //main loop
     while(true)
     {
         UI_socket.recv(response, zmq::recv_flags::none);
         Message command(response.to_string());
-        std::string commandString= command["command"];
+        int commandNum= command.getInt("command");
 
-        if(commandString.compare("w") == 0)
+        //process commands
+        switch(commandNum)
         {
-            game.moveUp();
+            case MOVE_NORTH:
+                game.moveUp();
+                break;
+            case MOVE_SOUTH:
+                game.moveDown();
+                break;
+            case MOVE_EAST:
+                game.moveRight();
+                break;
+            case MOVE_WEST:
+                game.moveLeft();
+                break;
+            case QUIT:
+                UI_socket.send(zmq::buffer("close"));
+                break;
+            default:
+                std::cout << "Unrecognized command" << std::endl;
+
         }
-        if(commandString.compare("a") == 0)
-        {
-            game.moveLeft();
-        }
-        if(commandString.compare("s") == 0)
-        {
-            game.moveDown();
-        }
-        if(commandString.compare("d") == 0)
-        {
-            game.moveRight();
-        }
-        if(commandString.compare("close") == 0)
-        {
-            UI_socket.send(zmq::buffer("close"));
-            break;
-        }
+        if(commandNum == QUIT) break;
+
+        //get add map to UIdata
+        UIdata.addData("map", game.mapPrintString(false));
 
         //figure out what commands are available
-        //microservice?? No. Maybe change it to one later
+        game.checkAvailableCommands(UIdata);
 
-        //add room description to message. Maybe add it as a function of Room
+        //add room description to message
+        UIdata.addData("roomDesc", game.getRoomDescription());
 
         //send the UI game info
-        UI_socket.send(zmq::buffer(game.mapPrintString(false)));
+        UI_socket.send(zmq::buffer(UIdata.toString()));
     }
 
     //close sockets

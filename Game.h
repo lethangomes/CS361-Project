@@ -5,6 +5,7 @@
 #include "room.h"
 #include "messageParser.h"
 #include "ports.h"
+#include "commands.h"
 
 zmq::message_t generateMap(zmq::socket_t & socket, std::string);
 
@@ -24,7 +25,9 @@ class Game{
         void setRoom(Room newRoom, int, int);
         void fullPrint(bool);
         std::string mapPrintString(bool);
+        std::string getRoomDescription();
         void updateVisibleRooms();
+        void checkAvailableCommands(Message&);
         void moveUp();
         void moveDown();
         void moveLeft();
@@ -147,22 +150,22 @@ std::string Game::mapPrintString(bool printInvisible)
             int type = rooms[i][j].getType();
             if(type == CLOSED || (!printInvisible && !rooms[i][j].getVisible()))
             {
-                mapString += "____";
+                mapString += "    ";
             }
             else
             {
                 if(!printInvisible && !rooms[i][j].getRevealed())
                 {
-                    mapString += "_?_";
+                    mapString += " ? ";
                 }
                 else
                 {
-                    if(i == playerX && j == playerY) mapString = mapString +  "_*_";
-                    else mapString = mapString +  "_" + rooms[i][j].getTypeChar() + "_";
+                    if(i == playerX && j == playerY) mapString = mapString +  " * ";
+                    else mapString = mapString +  " " + rooms[i][j].getTypeChar() + " ";
                 }
 
                 if(j != height - 1 && rooms[i][j+1].getType() != CLOSED && (printInvisible || rooms[i][j+1].getVisible())) mapString += "-";
-                else mapString += "_";
+                else mapString += " ";
             }
             
         }
@@ -171,15 +174,15 @@ std::string Game::mapPrintString(bool printInvisible)
         for(int j = 0; j < height; j++)
         {
             int type = rooms[i][j].getType();
-            mapString += "_";
+            mapString += " ";
             if(i == width - 1 || type == CLOSED)
             {
-                mapString += "___";
+                mapString += "   ";
             }
             else
             {
-                if(rooms[i+1][j].getType() != CLOSED && (printInvisible || (rooms[i+1][j].getVisible() && rooms[i][j].getVisible()))) mapString += "|__";
-                else mapString += "___";
+                if(rooms[i+1][j].getType() != CLOSED && (printInvisible || (rooms[i+1][j].getVisible() && rooms[i][j].getVisible()))) mapString += "|  ";
+                else mapString += "   ";
             }
             //std::cout << rooms[i][j].getType() << "\t";
         }
@@ -191,37 +194,57 @@ std::string Game::mapPrintString(bool printInvisible)
 
 void Game::moveUp()
 {
-    if(playerX != 0 && rooms[playerX - 1][playerY].getType() != CLOSED)
-    {
-        playerX -= 1;
-        updateVisibleRooms();
-    }    
+    playerX -= 1;
+    updateVisibleRooms();
 }
 
 void Game::moveDown()
 {
-    if(playerX != width -1 && rooms[playerX + 1][playerY].getType() != CLOSED)
-    {
-        playerX += 1;
-        updateVisibleRooms();
-    }
+    
+    playerX += 1;
+    updateVisibleRooms();
 }
 
 void Game::moveLeft()
 {
-    if(playerY != 0 && rooms[playerX][playerY - 1].getType() != CLOSED)
-    {
-        playerY -= 1;
-        updateVisibleRooms();
-    }
-    
+    playerY -= 1;
+    updateVisibleRooms();
 }
 
 void Game::moveRight()
 {
-    if(playerY != height-1 && rooms[playerX][playerY + 1].getType() != CLOSED)
+    playerY += 1;
+    updateVisibleRooms();
+}
+
+//checks what commands the player can use currently
+void Game::checkAvailableCommands(Message& message)
+{
+    //create list to store whether or not 
+    bool commands[NUM_COMMANDS];
+
+    //player can always quit
+    commands[QUIT] = true;
+
+    //move north
+    commands[MOVE_NORTH] = playerX != 0 && rooms[playerX - 1][playerY].getType() != CLOSED;
+
+    //move south
+    commands[MOVE_SOUTH] = playerX != width -1 && rooms[playerX + 1][playerY].getType() != CLOSED;
+
+    //move west
+    commands[MOVE_WEST] = playerY != 0 && rooms[playerX][playerY - 1].getType() != CLOSED;
+    
+    //move east
+    commands[MOVE_EAST] = playerY != height-1 && rooms[playerX][playerY + 1].getType() != CLOSED;
+    
+    for(int i = 0; i < NUM_COMMANDS; i++)
     {
-        playerY += 1;
-        updateVisibleRooms();
+        message.addData("command" + std::to_string(i), std::to_string(commands[i]));
     }
+}
+
+std::string Game::getRoomDescription()
+{
+    return rooms[playerX][playerY].getDescription();
 }

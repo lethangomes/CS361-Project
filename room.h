@@ -26,6 +26,7 @@ class Room {
     int getType();
     char getTypeChar();
     void setType(int);
+    std::string getDescription();
     void setAvailable(bool);
     bool getAvailable();
     void setVisible(bool);
@@ -129,4 +130,26 @@ void Room::setCoords(int newx, int newy)
 {
     x = newx;
     y = newy;
+}
+
+//gets description to print when player enters room
+std::string Room::getDescription()
+{
+    switch(type)
+    {
+        case CLOSED:
+            return "How did you get here?";
+        case EMPTY:
+            return "You enter a large, empty room. There's nothing of interest";
+        case SPAWN:
+            return "You're in the room you entered through";
+        case GOLD:
+            return "The room you entered is filled with more treasure than you could ever need";
+        case TRAP: 
+            return "As you enter the room, you hear a soft click. You have stepped into a trap";
+        case MONSTER:
+            return "You enter a large room. There is a large, shadowy form lurking in the corner";
+        default:
+            return "You forgot to add a description for this room dumbass";
+    }
 }
