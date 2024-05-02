@@ -86,14 +86,19 @@ int main()
     UI_socket.close();
 }
 
+//generates a map with given settings
 zmq::message_t generateMap(zmq::socket_t & socket, std::string settings)
 {
+    //converts string into message
     Message generationSettings(settings);
     std::cout << "Generating" << std::endl;
 
+    //calls mapGenerator microservice to generate map
     zmq::message_t response;
     socket.send(zmq::buffer(generationSettings.toString()), zmq::send_flags::none);
     socket.recv(response, zmq::recv_flags::none);
+
+    //returns map
     return response;
 }
 

@@ -7,7 +7,7 @@
 
 #define DELIM_CHAR '%'
 
-
+//This class is used to send messages between services
 class Message {
     private:
     std::map<std::string, std::string> data;
@@ -56,6 +56,7 @@ std::vector<std::string> Message::splitMessage(std::string message, char delim)
     return values;
 }
 
+//converts a string into a message
 Message::Message(std::string dataString)
 {
     std::vector<std::string> values = splitMessage(dataString, DELIM_CHAR);
@@ -67,6 +68,7 @@ Message::Message(std::string dataString)
     }
 }
 
+//converts 2 vectors into a message
 Message::Message(const std::vector<std::string>& keys, const std::vector<std::string>& values)
 {
     for(int i = 0; i < keys.size(); i++)
@@ -75,32 +77,43 @@ Message::Message(const std::vector<std::string>& keys, const std::vector<std::st
     }
 }
 
+//returns the data in message
 const std::map<std::string, std::string> & Message::getData()
 {
     return data;
 }
 
+//adds a new piece of data to the message
 void Message::addData(std::string key, std::string val)
 {
     std::replace(val.begin(), val.end(), '_', ' ');
     data[key] = val;
 }
 
+//converts the message to a string. Can be used in conjunction with the constructor that
+//converts a string to a message
 std::string Message::toString()
 {
     std::string message = "";
     std::map<std::string, std::string>::iterator it = data.begin();
+
+    //converts spaces to "_" because ZMQ doesn't like whitespace
     while(it != data.end())
     {
         std::string val = it->second;
         std::replace(val.begin(), val.end(), ' ', '_');
+
+        //keys and values are seperated by ":". Key-value pairs are seperated by DELIM_CHAR
         message = message + it->first + ":" + it->second + DELIM_CHAR;
         it++;
     }
+
+    //remove the extra DELIM_CHAR at the end
     message.pop_back();
     return message;
 }
 
+//overrides the [] operator to get info from the dictionary
 std::string Message::operator [](std::string key)
 {
     if(data.find(key) == data.end())
@@ -110,11 +123,13 @@ std::string Message::operator [](std::string key)
     return data[key];
 }
 
+//gets data from the message and converts the data to an int
 int Message::getInt(std::string key)
 {
     return std::stoi(data[key]);
 }
 
+//converts an array of rooms into data that can be stored in the message
 void Message::addMap(Room ** rooms, int width, int height, int numRooms)
 {
     addData("width", std::to_string(width));
@@ -134,6 +149,7 @@ void Message::addMap(Room ** rooms, int width, int height, int numRooms)
     }
 }
 
+//creates an array of rooms using data in the message
 Room ** Message::makeMap(int& width, int& height, int& numRooms)
 {
     width = getInt("width");

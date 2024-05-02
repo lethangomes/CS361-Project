@@ -39,8 +39,11 @@ class Room {
     std::string toString();
 };
 
+//constructors
 Room::Room() : type(CLOSED){}
 Room::Room(int x, int y, int type) : x(x), y(y), type(type) {}
+
+//construct room from string. Used in conjunction with  toString()
 Room::Room(std::string roomString)
 {
     std::vector<std::string> values;
@@ -57,6 +60,7 @@ Room::Room(std::string roomString)
         }
     }
 
+    //sets members to extracted values
     x = std::stoi(values[0]);
     y = std::stoi(values[1]);
     type = std::stoi(values[2]);
@@ -65,67 +69,80 @@ Room::Room(std::string roomString)
     revealed = std::stoi(values[5]);
 }
 
+//gets room type
 int Room::getType()
 {
     return type;
 }
 
+//gets character representing room type
 char Room::getTypeChar()
 {
     if(type == CLOSED) return ' ';
     return typeChars[type];
 }
 
+//sets room type
 void Room::setType(int newType)
 {
     type = newType;
 }
 
+//sets the rooms availability
 void Room::setAvailable(bool newAvailable)
 {
     available = newAvailable;
 }
 
+//gets the rooms availability
 bool Room::getAvailable()
 {
     return available;
 }
 
+//sets the rooms visibility
 void Room::setVisible(bool newVisible)
 {
     visible = newVisible;
 }
 
+//gets the rooms visibility
 bool Room::getVisible()
 {
     return visible;
 }
 
+//changes if the room is revealed
 void Room::setRevealed(bool newRevealed)
 {
     revealed = newRevealed;
 }
 
+//gets if the room is revealed
 bool Room::getRevealed()
 {
     return revealed;
 }
 
+//gets rooms x coord
 int Room::getX()
 {
     return x;
 }
 
+//gets rooms y coord
 int Room::getY()
 {
     return y;
 }
 
+//converts room into a string. Used in conjunction with room(string) constructor
 std::string Room::toString()
 {
     return std::to_string(x) + ";" + std::to_string(y) + ";" + std::to_string(type) + ";" + std::to_string(available) + ";" + std::to_string(visible) + ";" + std::to_string(revealed);
 }
 
+//changes rooms coordinates
 void Room::setCoords(int newx, int newy)
 {
     x = newx;

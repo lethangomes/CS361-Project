@@ -82,6 +82,7 @@ Map::Map(int width, int height, int numRooms) : width(width), height(height), nu
     free(openSpotsY);
 }
 
+//destructor
 Map::~Map()
 {
     for(int i = 0; i < width; i++)
@@ -91,8 +92,10 @@ Map::~Map()
     free(rooms);
 }
 
+//finds spots on the map that are adjacent to non-closed rooms
 void Map::checkAvailableSpots(int * openSpotsX, int* openSpotsY, int& numOpenSpots, int x, int y)
 {
+    //check above room
     if(x + 1 < width && rooms[x+1][y].getType() == CLOSED && !rooms[x+1][y].getAvailable())
     {
         rooms[x+1][y].setAvailable(true);
@@ -100,6 +103,8 @@ void Map::checkAvailableSpots(int * openSpotsX, int* openSpotsY, int& numOpenSpo
         openSpotsY[numOpenSpots] = y;
         numOpenSpots++;
     }
+
+    //check below room
     if(x - 1 >= 0 && rooms[x-1][y].getType() == CLOSED && !rooms[x-1][y].getAvailable())
     {
         rooms[x-1][y].setAvailable(true);
@@ -107,6 +112,8 @@ void Map::checkAvailableSpots(int * openSpotsX, int* openSpotsY, int& numOpenSpo
         openSpotsY[numOpenSpots] = y;
         numOpenSpots++;
     }
+
+    //check right of room
     if(y + 1 < height && rooms[x][y+1].getType() == CLOSED && !rooms[x][y+1].getAvailable())
     {
         rooms[x][y+1].setAvailable(true);
@@ -114,6 +121,8 @@ void Map::checkAvailableSpots(int * openSpotsX, int* openSpotsY, int& numOpenSpo
         openSpotsY[numOpenSpots] = y + 1;
         numOpenSpots++;
     }
+
+    //check left of room
     if(y - 1 >= 0 && rooms[x][y-1].getType() == CLOSED && !rooms[x][y-1].getAvailable())
     {
         rooms[x][y-1].setAvailable(true);
@@ -123,6 +132,7 @@ void Map::checkAvailableSpots(int * openSpotsX, int* openSpotsY, int& numOpenSpo
     }
 }
 
+//basic print function
 void Map::print()
 {
     for(int i = 0; i < width; i++)
@@ -182,7 +192,9 @@ void Map::addRooms(int type, int num)
 {
     for(int i = 0; i < num; i++)
     {
+        //if there are no more places to add special rooms, do nothing
         if(numEmptyRooms == 0) break;
+
         //randomly chooses rooms until it finds an empty one
         Room * current; 
         do 
@@ -190,21 +202,25 @@ void Map::addRooms(int type, int num)
             current = &rooms[rand() % width][rand() % height];
         } while (current->getType() != EMPTY);
 
+        //sets the empty room it found to specified type
         current->setType(type);
         numEmptyRooms -= 1;
     }
 }
 
+//gets the room at x, y
 Room& Map::getRoom(int x, int y)
 {
     return rooms[x][y];
 }
 
+//returns the total number of rooms in the map
 int Map::getNumRooms()
 {
     return numRooms;
 }
 
+//returns the array of rooms
 Room** Map::getRooms()
 {
     return rooms;
