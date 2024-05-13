@@ -98,6 +98,8 @@ zmq::message_t generateMap(zmq::socket_t & socket, std::string settings)
     socket.send(zmq::buffer(generationSettings.toString()), zmq::send_flags::none);
     socket.recv(response, zmq::recv_flags::none);
 
+    std::cout << response.to_string() << std::endl;
+
     //returns map
     return response;
 }
