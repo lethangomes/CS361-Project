@@ -12,6 +12,7 @@ class Map {
         int numEmptyRooms;
         
         void checkAvailableSpots(int *, int*, int&, int, int);
+        void populateMap();
 
     public:
         Map(int, int, int);
@@ -51,6 +52,11 @@ Map::Map(int width, int height, int numRooms) : width(width), height(height), nu
         }
     }
 
+    populateMap();    
+}
+
+void Map::populateMap()
+{
     //sets spawn in the middle of the map
     rooms[width/2][height/2].setType(SPAWN);
     rooms[width/2][height/2].setVisible(true);
@@ -181,7 +187,6 @@ void Map::fullPrint(bool printInvisible)
                 if(rooms[i+1][j].getType() != CLOSED) std::cout << "|  ";
                 else std::cout << "   ";
             }
-            //std::cout << rooms[i][j].getType() << "\t";
         }
         std::cout << std::endl;
     }

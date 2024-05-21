@@ -24,7 +24,7 @@ class Room {
     Room(std::string);
     
     int getType();
-    char getTypeChar();
+    char getTypeChar(bool);
     void setType(int);
     std::string getDescription();
     void setAvailable(bool);
@@ -43,9 +43,10 @@ class Room {
 Room::Room() : type(CLOSED){}
 Room::Room(int x, int y, int type) : x(x), y(y), type(type) {}
 
-//construct room from string. Used in conjunction with  toString()
+//construct room from string. Used in conjunction with toString()
 Room::Room(std::string roomString)
 {
+    //extract values from string
     std::vector<std::string> values;
     values.push_back("");
     for(int i = 0; i < roomString.size(); i++)
@@ -76,10 +77,19 @@ int Room::getType()
 }
 
 //gets character representing room type
-char Room::getTypeChar()
+char Room::getTypeChar(bool considerVisibility = false)
 {
     if(type == CLOSED) return ' ';
-    return typeChars[type];
+    if(!considerVisibility)
+    {
+        return typeChars[type];
+    }
+    else
+    {
+        if(revealed) return typeChars[type];
+        if(visible) return '?';
+        return ' ';
+    }
 }
 
 //sets room type

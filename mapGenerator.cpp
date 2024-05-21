@@ -28,7 +28,6 @@ int processRequest(std::string request, zmq::socket_t& socket)
             std::string roomCount = generationSettings["numRoomType" + std::to_string(i)];
             if(roomCount.compare("")) map.addRooms(i, std::stoi(roomCount));
         }
-        //map.fullPrint(true);
 
         //turn map into message
         Message generatedMap;

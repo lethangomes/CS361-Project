@@ -3,16 +3,12 @@
 #include <algorithm>
 #include "commands.h"
 #include <chrono>
-
-#define DEFAULT_WIDTH 10
-#define DEFAULT_HEIGHT 10
-#define DEFAULT_NUMROOMS 25
-#define DEFAULT_NUM_GOLD 1
-#define DEFAULT_NUM_MONSTER 3
-#define DEFAULT_NUM_TRAP 4
+#include "settings.h"
 
 static std::string commandNames[NUM_COMMANDS] = {"quit", "moveNorth", "moveSouth", "moveEast", "moveWest", "help"};
 static std::string commandDescriptions[NUM_COMMANDS] = {"Closes the game", "Moves player north", "Moves player south", "Moves player east", "Moves player west", "Opens help menu"};
+
+
 
 int main()
 {
@@ -21,54 +17,15 @@ int main()
     zmq::socket_t socket{context, zmq::socket_type::req};
     socket.connect("tcp://localhost:" + std::string(UI_PORT));
 
+    std::unordered_map<std::string, Setting> settings;
+    initializeSettings(settings);
+
     Message generationSettings;
 
     //intro message
     std::cout << "Welcome to my very cool and epic untitled game. In this game you run around a dungeon, collect gold, and bring it back to where you came in while avoiding monsters and traps." << std::endl;
 
-    //Ask if user wants default or custom dungeon
-    std::cout << "Would you like to generate the dungeon with default settings, or generate a dungeon with custom settings for a more specific experience" << std::endl;
-    std::cout << std::endl <<"Note - depending on what you want to change and how familiar you are with the available settings, setting up a custom generated dungeon may take a while and may have unintended effects on gameplay." << std::endl;
-    
-    //get setting mode(default/custom) from user
-    int settingMode;
-    do
-    {
-        std::cout << std::endl << "Enter 0 for default settings. Enter 1 to go to settings page" ;
-        std::cin >> settingMode;
-    } while (settingMode != 0 && settingMode != 1);
-
-    //set settings to default values
-    std::string width = std::to_string(DEFAULT_WIDTH);
-    std::string height = std::to_string(DEFAULT_HEIGHT);
-    std::string numRooms = std::to_string(DEFAULT_NUMROOMS);
-    std::string numRoomTypes[NUMROOMTYPES - SPAWN - 1] = {
-        std::to_string(DEFAULT_NUM_GOLD),
-        std::to_string(DEFAULT_NUM_MONSTER),
-        std::to_string(DEFAULT_NUM_TRAP)
-    };
-
-    //change settings user wants to
-    if(settingMode == 1)
-    {
-        std::cout << "-----------------------------------" << std::endl << std::endl;
-        changeSettings(width, height, numRooms, numRoomTypes);
-    }
-
-    //add parameters to message
-    generationSettings.addData("width", width);
-    generationSettings.addData("height", height);
-    generationSettings.addData("numRooms", numRooms);
-    for(int i = SPAWN + 1; i < NUMROOMTYPES; i++)
-    {
-        generationSettings.addData("numRoomType" + std::to_string(i), numRoomTypes[i - SPAWN - 1]);
-    }
-
-    //send settings to game microservice
-    auto t1 = std::chrono::high_resolution_clock::now();
-    socket.send(zmq::buffer(generationSettings.toString()), zmq::send_flags::none);
-    auto t2 = std::chrono::high_resolution_clock::now();
-    std::cout << "Execution time: " <<std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count() << std::endl;
+    settingsPage(generationSettings, socket, settings);
     
     //main game loop
     while(true)
@@ -288,13 +245,7 @@ void changeSettings(std::string& width, std::string& height, std::string& numRoo
         if(!userInput.compare("default"))
         {
             //reset all settings to default values
-            //ADD CONFIRMATION LATER
-            width = std::to_string(DEFAULT_WIDTH);
-            height = std::to_string(DEFAULT_HEIGHT);
-            numRooms = std::to_string(DEFAULT_NUMROOMS);
-            numRoomTypes[0] = std::to_string(DEFAULT_NUM_GOLD);
-            numRoomTypes[1] = std::to_string(DEFAULT_NUM_MONSTER);
-            numRoomTypes[2] = std::to_string(DEFAULT_NUM_TRAP);
+            setDefaultVals(width, height, numRooms, numRoomTypes);
         }
 
         //numRooms
@@ -411,5 +362,81 @@ void updateSetting(std::string name, std::string & setting, int defaultVal, int 
             //input is not an integer
             std::cout << "Invalid input. " << name << " must be a positive integer" << std::endl;
         }
+    }
+}
+
+void settingsPage(Message & generationSettings, zmq::socket_t & socket, std::unordered_map<std::string, Setting>& settings)
+{
+    //Ask if user wants default or custom dungeon
+    std::cout << "Would you like to generate the dungeon with default settings, or generate a dungeon with custom settings for a more specific experience" << std::endl;
+    std::cout << std::endl <<"Note - depending on what you want to change and how familiar you are with the available settings, setting up a custom generated dungeon may take a while and may have unintended effects on gameplay." << std::endl;
+    
+    //get setting mode(default/custom) from user
+    int settingMode;
+    do
+    {
+        std::cout << std::endl << "Enter 0 for default settings. Enter 1 to go to settings page" ;
+        std::cin >> settingMode;
+    } while (settingMode != 0 && settingMode != 1);
+
+    //set settings to default values
+    std::string width, height, numRooms, numRoomTypes[NUMROOMTYPES - SPAWN -1];
+    setDefaultVals(width, height, numRooms, numRoomTypes);
+
+    //change settings user wants to
+    if(settingMode == 1)
+    {
+        std::cout << "-----------------------------------" << std::endl << std::endl;
+        changeSettings(width, height, numRooms, numRoomTypes);
+    }
+
+    //add parameters to message
+    generationSettings.addData("width", width);
+    generationSettings.addData("height", height);
+    generationSettings.addData("numRooms", numRooms);
+    for(int i = SPAWN + 1; i < NUMROOMTYPES; i++)
+    {
+        generationSettings.addData("numRoomType" + std::to_string(i), numRoomTypes[i - SPAWN - 1]);
+    }
+
+    //send settings to game microservice
+    socket.send(zmq::buffer(generationSettings.toString()), zmq::send_flags::none);
+}
+
+//set values for dungeon settings to default
+void setDefaultVals(std::string & width, std::string & height, std::string & numRooms, std::string numRoomTypes[NUMROOMTYPES - SPAWN - 1])
+{
+    width = std::to_string(DEFAULT_WIDTH);
+    height = std::to_string(DEFAULT_HEIGHT);
+    numRooms = std::to_string(DEFAULT_NUMROOMS);
+    numRoomTypes[0] = std::to_string(DEFAULT_NUM_GOLD); 
+    numRoomTypes[1] = std::to_string(DEFAULT_NUM_MONSTER); 
+    numRoomTypes[2] = std::to_string(DEFAULT_NUM_TRAP); 
+}
+
+void setDefaultVals(std::unordered_map<std::string, Setting> & settings)
+{
+    for(auto it = settings.begin(); it != settings.end(); it++)
+    {
+        std::string key = it->first;
+        settings[key].value = settings[key].defaultVal;
+    }
+}
+
+//set up settings structs
+void initializeSettings(std::unordered_map<std::string, Setting>& settings)
+{
+    for(int i = 0; i < NUM_SETTINGS; i++)
+    {
+        Setting newSetting;
+        newSetting.value = newSetting.defaultVal = SETTING_DEFAULTS[i];
+        newSetting.min = SETTING_MINS[i];
+        newSetting.max = SETTING_MAXES[i];
+        newSetting.recMax = SETTING_REC_MAXES[i];
+        newSetting.recMin = SETTING_REC_MINS[i];
+        newSetting.notes = SETTING_NOTES[i];
+        newSetting.description = SETTING_DESCRIPTIONS[i];
+
+        settings[SETTING_NAMES[i]] = newSetting;
     }
 }

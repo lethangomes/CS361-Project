@@ -7,8 +7,6 @@
 #include "ports.h"
 #include "commands.h"
 
-zmq::message_t generateMap(zmq::socket_t & socket, std::string);
-
 class Game{
     private:
         int playerX;
@@ -17,6 +15,10 @@ class Game{
         int height;
         int numRooms;
         Room** rooms;
+
+        //helper functions
+        void roomsPrintString(bool, std::string&, int);
+        void connectorsPrintString(bool, std::string &, int);
 
     public:
         Game(int, int, int);
@@ -51,6 +53,7 @@ Game::Game(Message message)
     rooms = message.makeMap(width, height, numRooms);
     playerX = width/2;
     playerY = height/2;
+    updateVisibleRooms();
 }
 
 //constructor
@@ -65,6 +68,7 @@ Game::Game(int width, int height, int numRooms) : width(width), height(height), 
 
     playerX = width/2;
     playerY = height/2;
+    updateVisibleRooms();
 }
 
 //updates what rooms are visible based on player position
@@ -103,124 +107,55 @@ void Game::setRoom(Room newRoom, int x, int y)
     rooms[x][y] = newRoom;
 }
 
-//prints the map to console
-void Game::fullPrint(bool printInvisible)
-{
-    for(int i = 0; i < width; i++)
-    {
-        //print rooms
-        for(int j = 0; j < height; j++)
-        {
-            int type = rooms[i][j].getType();
-            if(type == CLOSED || (!printInvisible && !rooms[i][j].getVisible()))
-            {
-                //room is closed or not visible
-                std::cout << "    ";
-            }
-            else
-            {
-                if(!printInvisible && !rooms[i][j].getRevealed())
-                {
-                    //room is visible but has not been revealed
-                    std::cout << " ? ";
-                }
-                else
-                {
-                    //check if room has player in it
-                    if(i == playerX && j == playerY) std::cout << " * ";
-                    else std::cout << " " << rooms[i][j].getTypeChar() << " ";
-                }
-
-                //print horizontal connector if necesary
-                if(j != height - 1 && rooms[i][j+1].getType() != CLOSED && (printInvisible || rooms[i][j+1].getVisible())) std::cout << "-";
-                else std::cout << " ";
-            }
-            
-        }
-        std::cout << std::endl;
-
-        //print vertical connectors
-        for(int j = 0; j < height; j++)
-        {
-            int type = rooms[i][j].getType();
-            std::cout << " ";
-            if(i == width - 1 || type == CLOSED)
-            {
-                //one of the rooms is closed, no connector is needed
-                std::cout << "   ";
-            }
-            else
-            {
-                //check that the room above and below are not closed and are visible. If they are, print connector
-                if(rooms[i+1][j].getType() != CLOSED && (printInvisible || (rooms[i+1][j].getVisible() && rooms[i][j].getVisible()))) std::cout << "|  ";
-                else std::cout << "   ";
-            }
-            //std::cout << rooms[i][j].getType() << "\t";
-        }
-        std::cout << std::endl;
-    }
-}
-
-
-//converts the map to a printable string
+//converts the map to a printable string. If printInvisible is true it will treat the whole map as visible
 std::string Game::mapPrintString(bool printInvisible)
 {
     std::string mapString = "";
     for(int i = 0; i < width; i++)
     {
-        //print rooms
-        for(int j = 0; j < height; j++)
-        {
-            int type = rooms[i][j].getType();
-            if(type == CLOSED || (!printInvisible && !rooms[i][j].getVisible()))
-            {
-                //room is closed or not visible, do not print it
-                mapString += "    ";
-            }
-            else
-            {
-                if(!printInvisible && !rooms[i][j].getRevealed())
-                {
-                    //room is visible, but not revealed
-                    mapString += " ? ";
-                }
-                else
-                {
-                    //room is visible and has been revealed
-                    if(i == playerX && j == playerY) mapString = mapString +  " * ";
-                    else mapString = mapString +  " " + rooms[i][j].getTypeChar() + " ";
-                }
-
-                //print horizontal connector if necesary
-                if(j != height - 1 && rooms[i][j+1].getType() != CLOSED && (printInvisible || rooms[i][j+1].getVisible())) mapString += "-";
-                else mapString += " ";
-            }
-            
-        }
-        mapString += '\n';
-
-        //print vertical connectors
-        for(int j = 0; j < height; j++)
-        {
-            int type = rooms[i][j].getType();
-            mapString += " ";
-            if(i == width - 1 || type == CLOSED)
-            {
-                //the room we are currently looking at is closed, so it can't be connected to anything
-                mapString += "   ";
-            }
-            else
-            {
-                //make sure room above and below are both not closed and are visible before printing connector
-                if(rooms[i+1][j].getType() != CLOSED && (printInvisible || (rooms[i+1][j].getVisible() && rooms[i][j].getVisible()))) mapString += "|  ";
-                else mapString += "   ";
-            }
-            //std::cout << rooms[i][j].getType() << "\t";
-        }
-        mapString += '\n';
+        roomsPrintString(printInvisible, mapString, i);
+        connectorsPrintString(printInvisible, mapString, i);
     }
 
     return mapString;
+}
+
+//helper function for mapPrintString. Prints one row of rooms
+void Game::roomsPrintString(bool printInvisible, std::string &mapString, int row)
+{
+    for(int j = 0; j < height; j++)
+    {
+        //print room
+        if(row == playerX && j == playerY) mapString = mapString +  " * ";
+        else mapString = mapString +  " " + rooms[row][j].getTypeChar(!printInvisible) + " ";
+
+        //print connector
+        if(j != height - 1 && rooms[row][j+1].getType() != CLOSED && rooms[row][j].getType() != CLOSED &&
+            (printInvisible || (rooms[row][j+1].getVisible() && rooms[row][j].getVisible()))) mapString += "-";
+        else mapString += " ";
+        
+    }
+    mapString += '\n';
+}
+
+//helper function for mapPrintString. Prints one row of vertical connectors
+void Game::connectorsPrintString(bool printInvisible, std::string &mapString, int row)
+{
+    //print vertical connectors
+    for(int j = 0; j < height; j++)
+    {
+        int type = rooms[row][j].getType();
+        mapString += " ";
+        if(row == width - 1 || type == CLOSED || (!printInvisible && !rooms[row][j].getVisible())) mapString += "   "; 
+        else
+        {
+            //make sure room above is not closed and are visible before printing connector
+            if(rooms[row+1][j].getType() != CLOSED && 
+                (printInvisible || rooms[row+1][j].getVisible())) mapString += "|  ";
+            else mapString += "   ";
+        }
+    }
+    mapString += '\n';
 }
 
 //moves the player north
@@ -255,7 +190,6 @@ void Game::moveRight()
 //checks what commands the player can use currently
 void Game::checkAvailableCommands(Message& message)
 {
-    //create list to store whether or not 
     bool commands[NUM_COMMANDS];
 
     //commands that are always available
@@ -285,3 +219,8 @@ std::string Game::getRoomDescription()
 {
     return rooms[playerX][playerY].getDescription();
 }
+
+
+zmq::message_t generateMap(zmq::socket_t & socket, std::string);
+int processCommand(int commandNum, Game &game);
+int gameLoop(zmq::socket_t &UI_socket, Game &game, Message &UIdata);
