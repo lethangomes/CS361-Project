@@ -3,6 +3,7 @@
 #include <unordered_map>
 
 struct Setting{
+    std::string name;
     int value;
     int min;
     int max;
@@ -11,7 +12,16 @@ struct Setting{
     int recMax;
     std::string notes;
     std::string description;
+
+    std::string getVal();
 };
+
+std::string Setting::getVal()
+{
+    return std::to_string(value);
+}
+
+typedef std::unordered_map<std::string, Setting> Settings;
 
 #define DEFAULT_WIDTH 10
 #define DEFAULT_HEIGHT 10
@@ -34,7 +44,7 @@ static const int SETTING_MAXES[NUM_SETTINGS] = {20, 20, 400, 100, 100, 100};
 static const int SETTING_MINS[NUM_SETTINGS] = {3, 4, 5, 1, 1, 1};
 static const int SETTING_REC_MAXES[NUM_SETTINGS] = {15, 15, 50, 5, 5, 5};
 static const int SETTING_REC_MINS[NUM_SETTINGS] = {5, 5, 10, 1, 1, 1};
-static const std::string SETTING_NOTES[NUM_SETTINGS] = {
+static const std::string SETTING_DESCRIPTIONS[NUM_SETTINGS] = {
     "width - The maximum width of the dungeon",
     "height - The maximum height of the dungeon",
     "numRooms - The total number of rooms that will be generated",
@@ -43,7 +53,7 @@ static const std::string SETTING_NOTES[NUM_SETTINGS] = {
     "numTrap - The number of rooms that will spawn with traps"
 };
 
-static const std::string SETTING_DESCRIPTIONS[NUM_SETTINGS] = {
+static const std::string SETTING_NOTES[NUM_SETTINGS] = {
     "the dungeon generates in a rectangular grid. This setting changes how large that grid is horizontally. If the grid doesn't have enough space for the number of rooms you generate some of those rooms won't generate",
     "the dungeon generates in a rectangular grid. This setting changes how large that grid is vertically. If the grid doesn't have enough space for the number of rooms you generate some of those rooms won't generate",
     "the dungeon will only generated up to width * height rooms, even if this setting is set to a larger value. Additionally, if you try to generate more special rooms(gold, traps, and monsters) than there are total rooms, some of the special rooms will not generate",

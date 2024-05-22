@@ -17,7 +17,7 @@ int main()
     zmq::socket_t socket{context, zmq::socket_type::req};
     socket.connect("tcp://localhost:" + std::string(UI_PORT));
 
-    std::unordered_map<std::string, Setting> settings;
+    Settings settings;
     initializeSettings(settings);
 
     Message generationSettings;
@@ -56,58 +56,14 @@ int main()
 
         //get command from user
         Message command;
-        bool isValid = false;
-        while(!isValid)
+        while(true)
         {
             //get input
             std::cout << "What would you like to do? ";
             std::string input;
             std::cin >> input;
 
-            //validate input
-            for(int i = 0; i < NUM_COMMANDS; i++)
-            {
-                if(!input.compare(commandNames[i]))
-                {
-                    if(commandAvailablity[i])
-                    {
-                        //Special case if command is help
-                        if(i == HELP)
-                        {
-                            std::cout << "Which command do you need help with?(enter \"all\" for list of all commands): ";
-                            std::string helpArg;
-                            std::cin >> helpArg;
-                            if(!helpArg.compare("all"))
-                            {
-                                std::cout << std::endl;
-                                printHelp(commandAvailablity);
-                            }
-                            else
-                            {
-                                printHelp(helpArg);
-                            }
-                            break;
-                        }
-                        else{
-                            //valid input given
-                            command.addData("command", std::to_string(i));
-                            isValid = true;
-                            break;
-                        }
-                        
-                    }
-
-                    //command used exists, but cannot be used
-                    std::cout << commandNames[i] << " is not available right now" <<  std::endl;
-                    break;
-                }
-            }
-
-            if(!isValid && input.compare(commandNames[HELP]))
-            {
-                //command given does not exist
-                std::cout << "Command not recognized. Please pick one from the list above" << std::endl;
-            }
+            if(processCommand(input, commandAvailablity, command) == 1) break;
         }
         
         socket.send(zmq::buffer(command.toString()), zmq::send_flags::none);
@@ -121,6 +77,50 @@ int main()
 
     socket.close();
     return 0;
+}
+
+//return -1 if invalid command, return 0 if valid but game needs annother input, return 1 if valid command
+int processCommand(std::string input, std::vector<bool> commandAvailablity, Message & command)
+{
+    for(int i = 0; i < NUM_COMMANDS; i++)
+    {
+        if(!input.compare(commandNames[i]))
+        {
+            if(commandAvailablity[i])
+            {
+                //Special case if command is help
+                if(i == HELP)
+                {
+                    std::cout << "Which command do you need help with?(enter \"all\" for list of all commands): ";
+                    std::string helpArg;
+                    std::cin >> helpArg;
+                    if(!helpArg.compare("all"))
+                    {
+                        std::cout << std::endl;
+                        printHelp(commandAvailablity);
+                    }
+                    else
+                    {
+                        printHelp(helpArg);
+                    }
+                    return 0;
+                }
+                else{
+                    //valid input given
+                    command.addData("command", std::to_string(i));
+                    return 1;
+                }
+                
+            }
+
+            //command used exists, but cannot be used
+            std::cout << commandNames[i] << " is not available right now" <<  std::endl;
+            return -1;
+        }
+    }
+
+    std::cout << "Command not recognized. Please pick one from the list above" << std::endl;
+    return -1;
 }
 
 //splits message into substrings separated by the deliminating character and returns vector of those substrings
@@ -221,7 +221,7 @@ void printHelpInfo(int command, std::string description, std::string availabilit
     std::cout << "Availability: " << availability << std::endl;
 }
 
-void changeSettings(std::string& width, std::string& height, std::string& numRooms, std::string numRoomTypes[NUMROOMTYPES - 2])
+void changeSettings(Settings & settings)
 {
     std::string userInput = "";
     while(userInput.compare("done"))
@@ -242,42 +242,20 @@ void changeSettings(std::string& width, std::string& height, std::string& numRoo
 
         std::cout << "-----------------------------------" << std::endl << std::endl;
 
+        if(!userInput.compare("done")) break;
+
         if(!userInput.compare("default"))
         {
             //reset all settings to default values
-            setDefaultVals(width, height, numRooms, numRoomTypes);
+            setDefaultVals(settings);
+            continue;
         }
 
-        //numRooms
-        if(!userInput.compare("numRooms")) updateSetting(userInput ,numRooms, DEFAULT_NUMROOMS, 10, (std::stoi(width) * std::stoi(height))/2, 5, 400,
-            "the dungeon will only generated up to width * height rooms, even if this setting is set to a larger value. Additionally, if you try to generate more special rooms(gold, traps, and monsters) than there are total rooms, some of the special rooms will not generate", 
-            "numRooms - The total number of rooms that will be generated");
-        
-        //height
-        //width and height in the code are the opposite of what you'd intuitively think they were so I switched them for the user
-        if(!userInput.compare("width")) updateSetting(userInput ,height, DEFAULT_HEIGHT, 5, 15, 3, 20,
-         "the dungeon generates in a rectangular grid. This setting changes how large that grid is horizontally. If the grid doesn't have enough space for the number of rooms you generate some of those rooms won't generate", 
-         "width - The maximum width of the dungeon");
-        
-        //width
-        if(!userInput.compare("height")) updateSetting(userInput ,width, DEFAULT_WIDTH, 5, 15, 3, 20,
-         "the dungeon generates in a rectangular grid. This setting changes how large that grid is vertically. If the grid doesn't have enough space for the number of rooms you generate some of those rooms won't generate", 
-         "height - The maximum height of the dungeon");
-
-        //numGold
-        if(!userInput.compare("numGold")) updateSetting(userInput ,numRoomTypes[0], DEFAULT_NUM_GOLD, 1, 5, 1, 100,
-         "Gold rooms are the win condition of this game. Your goal is to find as many of them as you can and leave without dying", 
-         "numGold - The number of rooms that will spawn with gold");
-
-        //numMonster
-        if(!userInput.compare("numMonster")) updateSetting(userInput ,numRoomTypes[1], DEFAULT_NUM_MONSTER, 3, 5, 0, 100,
-         "Monsters are enemies that roam the dungeon. Entering a room with one will instantly kill you. They can be killed, which will remove them from the map", 
-         "numMonster - The number of rooms that will spawn with monsters in them");
-
-        //numTrap
-        if(!userInput.compare("numTrap")) updateSetting(userInput ,numRoomTypes[2], DEFAULT_NUM_TRAP, 3, 10, 0, 100,
-         "Trapped rooms are rooms that cause a random negative effect for the player", 
-         "numTrap - The number of rooms that will spawn with traps");
+        //if user input a valid setting, move to update screen
+        if(settings.find(userInput) != settings.end())
+        {
+            updateSetting(settings[userInput]);
+        }
 
         std::cout << "-----------------------------------" << std::endl << std::endl;
     }
@@ -292,12 +270,22 @@ bool validateInput(std::string input)
     return true;
 }
 
-void updateSetting(std::string name, std::string & setting, int defaultVal, int recMin, int recMax, int min, int max, std::string notes, std::string description)
+void updateSetting(Setting & setting)
 {
+    std::string description = setting.description;
+    std::string name = setting.name;
+    int defaultVal = setting.defaultVal;
+    int currentVal = setting.value;
+    int min = setting.min;
+    int max = setting.max;
+    int recMin = setting.recMin;
+    int recMax = setting.recMax;
+    std::string notes = setting.notes;
+
     //print setting info
     std::cout << description << std::endl;
     std::cout << "Default value: " << defaultVal << std::endl;
-    std::cout << "Current value: " << setting << std::endl;
+    std::cout << "Current value: " << currentVal << std::endl;
     std::cout << "Accepted range: " << min << " - " << max << std::endl;
     std::cout << "Reccomended range: " << recMin << " - " << recMax << std::endl;
     std::cout << "Notes: " << notes << std::endl;
@@ -339,7 +327,7 @@ void updateSetting(std::string name, std::string & setting, int defaultVal, int 
                     if(!confirmation.compare("y"))
                     {
                         //confirm change
-                        setting = newVal;
+                        setting.value = newintVal;
                         break;
                     }
                     else
@@ -352,7 +340,7 @@ void updateSetting(std::string name, std::string & setting, int defaultVal, int 
                 else
                 {
                     //input is inside reccomended range
-                    setting = newVal;
+                    setting.value = newintVal;
                     break;
                 }
             }
@@ -365,7 +353,7 @@ void updateSetting(std::string name, std::string & setting, int defaultVal, int 
     }
 }
 
-void settingsPage(Message & generationSettings, zmq::socket_t & socket, std::unordered_map<std::string, Setting>& settings)
+void settingsPage(Message & generationSettings, zmq::socket_t & socket, Settings& settings)
 {
     //Ask if user wants default or custom dungeon
     std::cout << "Would you like to generate the dungeon with default settings, or generate a dungeon with custom settings for a more specific experience" << std::endl;
@@ -380,41 +368,34 @@ void settingsPage(Message & generationSettings, zmq::socket_t & socket, std::uno
     } while (settingMode != 0 && settingMode != 1);
 
     //set settings to default values
-    std::string width, height, numRooms, numRoomTypes[NUMROOMTYPES - SPAWN -1];
-    setDefaultVals(width, height, numRooms, numRoomTypes);
+    setDefaultVals(settings);
 
     //change settings user wants to
     if(settingMode == 1)
     {
         std::cout << "-----------------------------------" << std::endl << std::endl;
-        changeSettings(width, height, numRooms, numRoomTypes);
+        changeSettings(settings);
     }
 
-    //add parameters to message
-    generationSettings.addData("width", width);
-    generationSettings.addData("height", height);
-    generationSettings.addData("numRooms", numRooms);
-    for(int i = SPAWN + 1; i < NUMROOMTYPES; i++)
-    {
-        generationSettings.addData("numRoomType" + std::to_string(i), numRoomTypes[i - SPAWN - 1]);
-    }
+    addSettingsToMessage(settings, generationSettings);
 
     //send settings to game microservice
     socket.send(zmq::buffer(generationSettings.toString()), zmq::send_flags::none);
 }
 
-//set values for dungeon settings to default
-void setDefaultVals(std::string & width, std::string & height, std::string & numRooms, std::string numRoomTypes[NUMROOMTYPES - SPAWN - 1])
+void addSettingsToMessage(Settings & settings, Message & message)
 {
-    width = std::to_string(DEFAULT_WIDTH);
-    height = std::to_string(DEFAULT_HEIGHT);
-    numRooms = std::to_string(DEFAULT_NUMROOMS);
-    numRoomTypes[0] = std::to_string(DEFAULT_NUM_GOLD); 
-    numRoomTypes[1] = std::to_string(DEFAULT_NUM_MONSTER); 
-    numRoomTypes[2] = std::to_string(DEFAULT_NUM_TRAP); 
+    //add parameters to message
+    message.addData("width", settings["width"].getVal());
+    message.addData("height", settings["height"].getVal());
+    message.addData("numRooms", settings["numRooms"].getVal());
+    message.addData("numRoomType" + std::to_string(GOLD), settings["numGold"].getVal());
+    message.addData("numRoomType" + std::to_string(MONSTER), settings["numMonster"].getVal());
+    message.addData("numRoomType" + std::to_string(TRAP), settings["numTrap"].getVal());
 }
 
-void setDefaultVals(std::unordered_map<std::string, Setting> & settings)
+//set values for dungeon settings to default
+void setDefaultVals(Settings & settings)
 {
     for(auto it = settings.begin(); it != settings.end(); it++)
     {
@@ -424,11 +405,12 @@ void setDefaultVals(std::unordered_map<std::string, Setting> & settings)
 }
 
 //set up settings structs
-void initializeSettings(std::unordered_map<std::string, Setting>& settings)
+void initializeSettings(Settings& settings)
 {
     for(int i = 0; i < NUM_SETTINGS; i++)
     {
         Setting newSetting;
+        newSetting.name = SETTING_NAMES[i];
         newSetting.value = newSetting.defaultVal = SETTING_DEFAULTS[i];
         newSetting.min = SETTING_MINS[i];
         newSetting.max = SETTING_MAXES[i];
