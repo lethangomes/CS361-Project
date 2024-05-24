@@ -5,8 +5,8 @@
 #include <chrono>
 #include "settings.h"
 
-static std::string commandNames[NUM_COMMANDS] = {"quit", "moveNorth", "moveSouth", "moveEast", "moveWest", "help"};
-static std::string commandDescriptions[NUM_COMMANDS] = {"Closes the game", "Moves player north", "Moves player south", "Moves player east", "Moves player west", "Opens help menu"};
+static std::string commandNames[NUM_COMMANDS] = {"quit", "moveNorth", "moveSouth", "moveEast", "moveWest", "help", "restart", "save", "load"};
+static std::string commandDescriptions[NUM_COMMANDS] = {"Closes the game", "Moves player north", "Moves player south", "Moves player east", "Moves player west", "Opens help menu", "Restarts the game" ,"Saves your progress to a file", "Loads game from file"};
 
 
 

@@ -14,6 +14,7 @@ class Game{
         int width;
         int height;
         int numRooms;
+        bool dead = false;
         Room** rooms;
 
         //helper functions
@@ -28,17 +29,30 @@ class Game{
         void fullPrint(bool);
         std::string mapPrintString(bool);
         std::string getRoomDescription();
-        void updateVisibleRooms();
         void checkAvailableCommands(Message&);
+        void updateMap(Message&);
+        void freeMap();
         void moveUp();
         void moveDown();
         void moveLeft();
         void moveRight();
+        Room** getMap();
+        int getWidth();
+        int getHeight();
+        int getNumRooms();
+        int getPlayerX();
+        int getPlayerY();
+        void restart(zmq::socket_t & socket);
 };
 
 
 //destructor
 Game::~Game()
+{
+    freeMap();
+}
+
+void Game::freeMap()
 {
     for(int i = 0; i < width; i++)
     {
@@ -53,7 +67,6 @@ Game::Game(Message message)
     rooms = message.makeMap(width, height, numRooms);
     playerX = width/2;
     playerY = height/2;
-    updateVisibleRooms();
 }
 
 //constructor
@@ -68,38 +81,8 @@ Game::Game(int width, int height, int numRooms) : width(width), height(height), 
 
     playerX = width/2;
     playerY = height/2;
-    updateVisibleRooms();
 }
 
-//updates what rooms are visible based on player position
-void Game::updateVisibleRooms()
-{
-    //above player
-    if(playerX + 1 < width)
-    {
-        rooms[playerX + 1][playerY].setVisible(true);
-    }
-
-    //right of player
-    if(playerY + 1 < height)
-    {
-        rooms[playerX][playerY + 1].setVisible(true);
-    }
-
-    //below player
-    if(playerX - 1 >= 0)
-    {
-        rooms[playerX - 1][playerY].setVisible(true);
-    }
-
-    //left of player
-    if(playerY - 1 >= 0)
-    {
-        rooms[playerX][playerY - 1].setVisible(true);
-    }
-
-    rooms[playerX][playerY].setRevealed(true);
-}
    
 //sets a specified room to a new value
 void Game::setRoom(Room newRoom, int x, int y)
@@ -162,7 +145,7 @@ void Game::connectorsPrintString(bool printInvisible, std::string &mapString, in
 void Game::moveUp()
 {
     playerX -= 1;
-    updateVisibleRooms();
+    //updateVisibleRooms();
 }
 
 //moves the player south
@@ -170,21 +153,21 @@ void Game::moveDown()
 {
     
     playerX += 1;
-    updateVisibleRooms();
+    //updateVisibleRooms();
 }
 
 //moves the player west
 void Game::moveLeft()
 {
     playerY -= 1;
-    updateVisibleRooms();
+    //updateVisibleRooms();
 }
 
 //moves the player east
 void Game::moveRight()
 {
     playerY += 1;
-    updateVisibleRooms();
+    //updateVisibleRooms();
 }
 
 //checks what commands the player can use currently
@@ -195,6 +178,9 @@ void Game::checkAvailableCommands(Message& message)
     //commands that are always available
     commands[HELP] = true;
     commands[QUIT] = true;
+    commands[RESTART] = true;
+    commands[SAVE] = true;
+    commands[LOAD] = true;
 
     //move north
     commands[MOVE_NORTH] = playerX != 0 && rooms[playerX - 1][playerY].getType() != CLOSED;
@@ -220,7 +206,61 @@ std::string Game::getRoomDescription()
     return rooms[playerX][playerY].getDescription();
 }
 
+Room** Game::getMap()
+{
+    return rooms;
+}
+
+int Game::getWidth()
+{
+    return width;
+}
+
+int Game::getHeight()
+{
+    return height;
+}
+
+int Game::getNumRooms()
+{
+    return numRooms;
+}
+
+//updates maps
+void Game::updateMap(Message & message)
+{
+    for(int i = 0; i < message.getInt("numUpdates"); i++)
+    {
+        Room currentRoom(message[std::to_string(i)]);
+        rooms[currentRoom.getX()][currentRoom.getY()] = currentRoom;
+    }
+}
+
+int Game::getPlayerX()
+{
+    return playerX;
+}
+
+int Game::getPlayerY()
+{
+    return playerY;
+}
+
+void Game::restart(zmq::socket_t & socket)
+{
+    zmq::message_t response;
+    socket.send(zmq::buffer(std::string("regen")), zmq::send_flags::none);
+    socket.recv(response, zmq::recv_flags::none);
+    std::cout << response.to_string() << std::endl;
+
+    Message message(response.to_string());
+    rooms = message.makeMap(width, height, numRooms);
+    playerX = width/2;
+    playerY = height/2;
+}
 
 zmq::message_t generateMap(zmq::socket_t & socket, std::string);
-int processCommand(int commandNum, Game &game);
-int gameLoop(zmq::socket_t &UI_socket, Game &game, Message &UIdata);
+int processCommand(int commandNum, Game &game, zmq::socket_t & updater_socket, zmq::socket_t & generator_socket);
+int gameLoop(zmq::socket_t &UI_socket, zmq::socket_t &updater_socket, Game &game, Message &UIdata, zmq::socket_t & generator_socket);
+zmq::message_t regenerateMap(zmq::socket_t & socket);
+void movementUpdate(Game & game, zmq::socket_t & updater_socket);

@@ -23,6 +23,7 @@ class Message {
 
     //add entry to data
     void addData(std::string, std::string);
+    void addInt(std::string, int);
     const std::map<std::string, std::string> & getData();
     //convert to string
     std::string toString();
@@ -90,6 +91,12 @@ void Message::addData(std::string key, std::string val)
     data[key] = val;
 }
 
+//adds a new piece of data to the message
+void Message::addInt(std::string key, int val)
+{
+    addData(key, std::to_string(val));
+}
+
 //converts the message to a string. Can be used in conjunction with the constructor that
 //converts a string to a message
 std::string Message::toString()
@@ -100,6 +107,7 @@ std::string Message::toString()
     //converts spaces to "_" because ZMQ doesn't like whitespace
     while(it != data.end())
     {
+        //std::cout << it->first << std::endl;
         std::string val = it->second;
         std::replace(val.begin(), val.end(), ' ', '_');
 

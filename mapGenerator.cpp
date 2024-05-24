@@ -4,6 +4,8 @@
 #include "messageParser.h"
 #include "ports.h"
 
+static Message * lastMap = NULL;
+
 int processRequest(std::string request, zmq::socket_t& socket)
 {
     //process request
@@ -11,6 +13,13 @@ int processRequest(std::string request, zmq::socket_t& socket)
     {
         socket.send(zmq::buffer("closing"), zmq::send_flags::none);
         return 1;
+    }
+    else if(!request.compare("regen"))
+    {
+        //return last map generated
+        std::cout << "hit" << std::endl;
+        socket.send(zmq::buffer(lastMap->toString()), zmq::send_flags::none);
+        return 0;
     }
     else
     {
@@ -30,11 +39,18 @@ int processRequest(std::string request, zmq::socket_t& socket)
         }
 
         //turn map into message
-        Message generatedMap;
-        generatedMap.addMap(map.getRooms(), width, height, numRooms);
+        Message * generatedMap = new Message();
+        generatedMap->addMap(map.getRooms(), width, height, numRooms);
 
         //send message
-        socket.send(zmq::buffer(generatedMap.toString()), zmq::send_flags::none);
+        socket.send(zmq::buffer(generatedMap->toString()), zmq::send_flags::none);
+
+        //keep track of the last map generated
+        if(lastMap != NULL)
+        {
+            free(lastMap);
+        }
+        lastMap = generatedMap;
         return 0;
     }
 }

@@ -1,5 +1,7 @@
 .vscode
 UI
 mapGenerator
+mapUpdater
 Game
 *.txt
+*.dSYM
