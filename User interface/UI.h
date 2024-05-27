@@ -2,8 +2,8 @@
 #include <iostream>
 #include <string>
 #include <zmq.hpp>
-#include "messageParser.h"
-#include "room.h"
+#include "../messageParser.h"
+#include "../room.h"
 #include "settings.h"
 
 std::vector<std::string> splitMessage(std::string message, char delim);

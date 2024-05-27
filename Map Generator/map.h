@@ -1,6 +1,6 @@
 #pragma once
-#include "room.h"
-#include "messageParser.h"
+#include "../room.h"
+#include "../messageParser.h"
 #include <iostream>
 
 class Map {

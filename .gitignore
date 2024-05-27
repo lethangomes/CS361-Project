@@ -3,5 +3,6 @@ UI
 mapGenerator
 mapUpdater
 Game
+eventProcessor
 *.txt
 *.dSYM

@@ -1,8 +1,7 @@
 #include <iostream>
 #include <zmq.hpp>
 #include "map.h"
-#include "messageParser.h"
-#include "ports.h"
+#include "../ports.h"
 
 static Message * lastMap = NULL;
 

@@ -1,7 +1,7 @@
 #include "UI.h"
-#include "ports.h"
+#include "../ports.h"
 #include <algorithm>
-#include "commands.h"
+#include "../commands.h"
 #include <chrono>
 #include "settings.h"
 
@@ -39,7 +39,13 @@ int main()
         
         //print map and room description
         std::cout << message["map"] << std::endl;
-        std::cout << message["roomDesc"] << std::endl << std::endl;
+        std::cout << message["roomDesc"] << std::endl;
+        std::cout << message["eventText"] << std::endl << std::endl;
+
+        if(!message["gameOver"].compare("True"))
+        {
+            break;
+        }
 
         //get possible commands from game and print them
         std::cout << "Commands: " << std::endl;

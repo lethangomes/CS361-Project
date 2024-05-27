@@ -15,6 +15,10 @@ int main()
     zmq::socket_t updater_socket(context, zmq::socket_type::req);
     updater_socket.connect("tcp://localhost:" +  std::string(MAP_UPDATER_PORT));
 
+    //construct a socket to connect to event processor
+    zmq::socket_t event_socket(context, zmq::socket_type::req);
+    event_socket.connect("tcp://localhost:" +  std::string(EVENT_PROCESSOR_PORT));
+
     std::string message;
     zmq::message_t response;
 
@@ -35,7 +39,7 @@ int main()
     UI_socket.send(zmq::buffer(UIdata.toString()));
     
     //main loop
-    while(gameLoop(UI_socket, updater_socket, game, UIdata, generator_socket) == 1);
+    while(gameLoop(UI_socket, updater_socket, game, UIdata, generator_socket, event_socket) == 1);
 
     //close sockets
     message = "close";
@@ -47,8 +51,9 @@ int main()
     updater_socket.recv(response, zmq::recv_flags::none);
     updater_socket.close();
 
-    UI_socket.send(zmq::buffer(message), zmq::send_flags::none);
-    UI_socket.close();
+    event_socket.send(zmq::buffer(message), zmq::send_flags::none);
+    event_socket.recv(response, zmq::recv_flags::none);
+    event_socket.close();
 }
 
 //generates a map with given settings
@@ -128,7 +133,33 @@ void movementUpdate(Game & game, zmq::socket_t & updater_socket)
     game.updateMap(updatedRooms);
 }
 
-int gameLoop(zmq::socket_t &UI_socket, zmq::socket_t &updater_socket, Game &game, Message &UIdata, zmq::socket_t & generator_socket)
+int processEvent(Game & game, zmq::socket_t & event_socket, Message & UIdata)
+{
+    //send map info
+    Message message;
+    message.addMap(game.getMap(), game.getWidth(), game.getHeight(), game.getNumRooms());
+    message.addData("x", std::to_string(game.getPlayerX()));
+    message.addData("y", std::to_string(game.getPlayerY()));
+    message.addInt("gold", game.getGold());
+    event_socket.send(zmq::buffer(message.toString()), zmq::send_flags::none);
+
+    //get updated rooms
+    zmq::message_t response;
+    event_socket.recv(response, zmq::recv_flags::none);
+    Message updatedRooms(response.to_string());
+
+    UIdata.addData("eventText", updatedRooms["eventText"]);
+
+    //update rooms
+    if(!updatedRooms["gotGold"].compare("True")) game.addGold();
+    if(!updatedRooms["victory"].compare("True")) return 1;
+    if(!updatedRooms["updated"].compare("False")) return 0;
+    if(!updatedRooms["GameOver"].compare("True")) return 1;
+    game.updateMap(updatedRooms);
+    return 0;
+}
+
+int gameLoop(zmq::socket_t &UI_socket, zmq::socket_t &updater_socket, Game &game, Message &UIdata, zmq::socket_t & generator_socket, zmq::socket_t & event_socket)
 {
     zmq::message_t response;
     UI_socket.recv(response, zmq::recv_flags::none);
@@ -138,14 +169,25 @@ int gameLoop(zmq::socket_t &UI_socket, zmq::socket_t &updater_socket, Game &game
     //process commands
     if(processCommand(commandNum, game, updater_socket, generator_socket) == 1) return 0;
 
+    //process events
+    int gameStatus = processEvent(game, event_socket, UIdata);
+
     //get add map to UIdata
-    UIdata.addData("map", game.mapPrintString(false));
+    UIdata.addData("map", game.mapPrintString(gameStatus == 1));
 
     //figure out what commands are available
     game.checkAvailableCommands(UIdata);
 
     //add room description to message
     UIdata.addData("roomDesc", game.getRoomDescription());
+
+    if(gameStatus == 1) //if processEvent is 1, game over
+    {
+        game.killPlayer();
+        UIdata.addData("gameOver", "True");
+        UI_socket.send(zmq::buffer(UIdata.toString()));
+        return 0; 
+    }
 
     //send the UI game info
     UI_socket.send(zmq::buffer(UIdata.toString()));

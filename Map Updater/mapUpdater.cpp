@@ -1,8 +1,8 @@
 #include <iostream>
 #include <zmq.hpp>
-#include "messageParser.h"
-#include "ports.h"
-#include "commands.h"
+#include "../messageParser.h"
+#include "../ports.h"
+#include "../commands.h"
 
 void movementRoomUpdate(int x, int y, int width, int height, Room ** map, Message & message, int & numUpdates)
 {
@@ -36,8 +36,48 @@ Message movementUpdate(int x, int y, Message & message)
     return response;
 }
 
+Message specialUpdate(int type, Message & message)
+{
+    int width, height, numRooms;
+    Room ** map = message.makeMap(width, height, numRooms);
+    Message response;
+    int numUpdates = 0;
+    int x = message.getInt("x");
+    int y = message.getInt("y");
+
+    switch(type)
+    {
+        case GOLD:
+            //remove gold room from map
+            response.addData("gotGold", "True");
+            map[x][y].setType(EMPTY);
+            response.addData(std::to_string(numUpdates++), map[x][y].toString());
+            break;
+        case TRAP:
+            for(int i = 0; i < width; i++)
+            {
+                for(int j = 0; j < height; j++)
+                {
+                    if(map[i][j].getRevealed() == true)
+                    {
+                        map[i][j].setRevealed(false);
+                        response.addData(std::to_string(numUpdates++), map[i][j].toString());
+                    }
+                }
+            }
+            break;
+        default:
+            std::cout << "invalid event" << std::endl;
+
+    }
+
+    response.addInt("numUpdates", numUpdates);
+    return response;
+}
+
 int main() 
 {
+    srand(time(NULL));
     zmq::context_t context(1);
     zmq::socket_t socket(context, zmq::socket_type::rep);
     socket.bind("tcp://*:" +  std::string(MAP_UPDATER_PORT));
@@ -65,7 +105,9 @@ int main()
         }
         else if(!message["updateType"].compare("special"))
         {
-
+            Message response = specialUpdate(message.getInt("event"), message);
+            std::cout << response.toString() << std::endl;
+            socket.send(zmq::buffer(response.toString()), zmq::send_flags::none);
         }
         else
         {
