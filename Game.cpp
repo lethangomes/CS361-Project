@@ -1,4 +1,9 @@
 #include "Game.h"
+#include <fstream>
+#include <chrono>
+#include <filesystem>
+#include <thread>
+#define filesystem __fs::filesystem
 
 int main() 
 {
@@ -75,8 +80,11 @@ zmq::message_t generateMap(zmq::socket_t & socket, std::string settings)
 }
 
 //processes commands. Returns -1 if command unrecognized, 1 if quit, and 0 otherwise
-int processCommand(int commandNum, Game &game, zmq::socket_t & updater_socket, zmq::socket_t & generator_socket)
+int processCommand(Message & command, Game &game, zmq::socket_t & updater_socket, zmq::socket_t & generator_socket)
 {
+
+    Message gameState;
+    int commandNum = command.getInt("command");
     switch(commandNum)
     {
         case MOVE_NORTH:
@@ -99,9 +107,12 @@ int processCommand(int commandNum, Game &game, zmq::socket_t & updater_socket, z
             break;
         case SAVE:
             std::cout << "Save not implemented" << std::endl;
+            gameState.addMap(game.getMap(), game.getWidth(), game.getHeight(), game.getNumRooms());
+            callDataSave(command["fileName"], "save", gameState.toString());
             break;
         case LOAD:
             std::cout << "Load not implemented" << std::endl;
+            game.load(callDataSave(command["fileName"], "load"));
             break;
         default:
             std::cout << "Unrecognized command" << std::endl;
@@ -164,10 +175,10 @@ int gameLoop(zmq::socket_t &UI_socket, zmq::socket_t &updater_socket, Game &game
     zmq::message_t response;
     UI_socket.recv(response, zmq::recv_flags::none);
     Message command(response.to_string());
-    int commandNum = command.getInt("command");
+    
 
     //process commands
-    if(processCommand(commandNum, game, updater_socket, generator_socket) == 1) return 0;
+    if(processCommand(command, game, updater_socket, generator_socket) == 1) return 0;
 
     //process events
     int gameStatus = processEvent(game, event_socket, UIdata);
@@ -193,4 +204,43 @@ int gameLoop(zmq::socket_t &UI_socket, zmq::socket_t &updater_socket, Game &game
     UI_socket.send(zmq::buffer(UIdata.toString()));
 
     return 1;
+}
+
+std::string callDataSave(std::string message, std::string command, std::string data)
+{
+    auto p = std::filesystem::path("./MIcroseviceA/resp.txt");
+    auto ftime = std::filesystem::last_write_time(p);
+    unsigned long startT = (unsigned long)ftime.time_since_epoch().count();
+    std::cout << (unsigned long)ftime.time_since_epoch().count() << std::endl;
+
+    std::fstream pipe;
+    pipe.open("./MIcroseviceA/pipe.txt", std::fstream::out | std::fstream::trunc);
+    pipe << command << '\n' << message;
+    if(data.compare(""))
+    {
+        pipe << '\n' << data;
+    }
+    pipe.close();
+
+    while(startT == (unsigned long)std::filesystem::last_write_time(p).time_since_epoch().count())
+    {
+        std::cout << "waiting" << std::endl;
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+
+    std::ifstream resp;
+    while(!resp.is_open()) resp.open("./MIcroseviceA/resp.txt");
+    std::string out;
+    //pipe.seekg(std::ios::beg);
+    while(!std::getline(resp, out))
+    {
+        resp.clear();
+        resp.seekg(0);
+        std::cout << "failed to read file" << std::endl;
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+    std::cout << out << std::endl;
+    resp.close();
+
+    return out;    
 }

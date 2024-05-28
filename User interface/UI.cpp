@@ -76,7 +76,7 @@ int main()
 
         if(command.getInt("command") == QUIT)
         {
-            socket.recv(response, zmq::recv_flags::none);
+            //socket.recv(response, zmq::recv_flags::none);
             break;
         }
     }
@@ -112,6 +112,21 @@ int processCommand(std::string input, std::vector<bool> commandAvailablity, Mess
                     return 0;
                 }
                 else{
+                    if(i == SAVE)
+                    {
+                        std::cout << "Enter name for save file: ";
+                        std::string saveArg;
+                        std::cin >> saveArg;
+                        command.addData("fileName", saveArg);
+                    }
+                    else if (i == LOAD)
+                    {
+                        std::cout << "Enter name of file to load: ";
+                        std::string loadArg;
+                        std::cin >> loadArg;
+                        command.addData("fileName", loadArg);
+                    }
+
                     //valid input given
                     command.addData("command", std::to_string(i));
                     return 1;
@@ -369,7 +384,7 @@ void settingsPage(Message & generationSettings, zmq::socket_t & socket, Settings
     int settingMode;
     do
     {
-        std::cout << std::endl << "Enter 0 for default settings. Enter 1 to go to settings page" ;
+        std::cout << std::endl << "Enter 0 for default settings. Enter 1 to go to settings page: ";
         std::cin >> settingMode;
     } while (settingMode != 0 && settingMode != 1);
 

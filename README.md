@@ -1,5 +1,8 @@
 # CS361-Project
 Project for CS 361
 
-[Insert information about project here]
+This is a school project for CS 361(programming language fundamentals 1) at Oregon State University. The goal was to create software using the microservice architecture. I chose to make a randomly generated, text based game. Currently you can randomly generate a dungeon with various restrictions. When generating the dungeon you can choose the number of rooms it should have, the number of each type of room it should have, and the maximum width and height of the dungeon. Once the dungeon is generated you can explore it using commands like "moveNorth", "moveSouth" and so on. The game ends when you find gold and return to your starting rooms, or when you run into a monster.
 
+This project includes 6 programs: UI, Game, mapUpdater, mapGenerator, eventProcessor, and a data_save microservice implemented by one of my classmates(https://github.com/NicholasGraalum/MIcroseviceA/tree/main). UI and Game are the main programs, and the rest are microservices that are called by Game. Map generator generates maps based on the settings you give it and can also return the last map it created if the user wants to restart. Map Updater takes the map, the player's position and any events that have triggered and returns what rooms need to be updated and how. Event processor takes the map, the player's position and other Game variables and returns the results of any event that would trigger in the current gamestate. The data save microservice can save and load data to and from files. These microservices communicate using ZMQ and a Message object defined in messageParser.h.
+
+To run the program, clone the respository and enter the command "make run".

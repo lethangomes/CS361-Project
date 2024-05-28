@@ -31,6 +31,7 @@ class Game{
         std::string mapPrintString(bool);
         std::string getRoomDescription();
         void checkAvailableCommands(Message&);
+        void load(std::string message);
         void updateMap(Message&);
         void freeMap();
         void moveUp();
@@ -272,15 +273,23 @@ void Game::restart(zmq::socket_t & socket)
     socket.recv(response, zmq::recv_flags::none);
     std::cout << response.to_string() << std::endl;
 
-    Message message(response.to_string());
+    load(response.to_string());
+}
+
+void Game::load(std::string data)
+{
+    Message message(data);
     rooms = message.makeMap(width, height, numRooms);
     playerX = width/2;
     playerY = height/2;
+    gold = 0;
+    dead = false;
 }
 
 zmq::message_t generateMap(zmq::socket_t & socket, std::string);
-int processCommand(int commandNum, Game &game, zmq::socket_t & updater_socket, zmq::socket_t & generator_socket);
+int processCommand(Message & command, Game &game, zmq::socket_t & updater_socket, zmq::socket_t & generator_socket);
 int gameLoop(zmq::socket_t &UI_socket, zmq::socket_t &updater_socket, Game &game, Message &UIdata, zmq::socket_t & generator_socket, zmq::socket_t & event_processor);
 zmq::message_t regenerateMap(zmq::socket_t & socket);
 void movementUpdate(Game & game, zmq::socket_t & updater_socket);
 int processEvent(Game & game, zmq::socket_t & event_socket, Message & UIdata);
+std::string callDataSave(std::string message, std::string command, std::string data = "");
