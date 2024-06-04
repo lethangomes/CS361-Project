@@ -108,6 +108,9 @@ int processCommand(Message & command, Game &game, zmq::socket_t & updater_socket
         case SAVE:
             std::cout << "Save not implemented" << std::endl;
             gameState.addMap(game.getMap(), game.getWidth(), game.getHeight(), game.getNumRooms());
+            gameState.addInt("x", game.getPlayerX());
+            gameState.addInt("y", game.getPlayerX());
+            gameState.addInt("gold", game.getGold());
             callDataSave(command["fileName"], "save", gameState.toString());
             break;
         case LOAD:

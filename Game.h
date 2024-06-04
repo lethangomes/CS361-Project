@@ -280,9 +280,15 @@ void Game::load(std::string data)
 {
     Message message(data);
     rooms = message.makeMap(width, height, numRooms);
-    playerX = width/2;
-    playerY = height/2;
-    gold = 0;
+
+    if(!message["x"].compare("")) playerX = width/2;
+    else playerX = message.getInt("x");
+
+    if(!message["y"].compare("")) playerY = height/2;
+    else playerX = message.getInt("y");
+
+    if(!message["gold"].compare("")) gold = 0;
+    else  gold = message.getInt("gold");
     dead = false;
 }
 
